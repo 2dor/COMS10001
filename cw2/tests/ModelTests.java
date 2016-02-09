@@ -85,4 +85,54 @@ public class ModelTests {
         assertEquals("Expected piece on (2, 2)", testPieces[2], model.getPiece(2, 2));
     }
 
+    @Test
+    public void testRemovesPieceCorrectly() throws Exception {
+        Set<Piece> pieces = new HashSet<Piece>();
+
+        Piece[] testPieces = new Piece[] {
+                new Piece(Colour.Red, 0, 0),
+                new Piece(Colour.White, 1, 1),
+
+                new Piece(Colour.Red, 5, 5),
+                new Piece(Colour.White, 4, 5),
+                new Piece(Colour.White, 4, 6),
+                new Piece(Colour.White, 6, 4),
+                new Piece(Colour.White, 6, 6),
+        };
+
+        for (Piece piece : testPieces) {
+            pieces.add(piece);
+        }
+
+        TestModel model = new TestModel("Test", new TestPlayer(), Colour.Red, pieces);
+
+        /**
+         * Red moves, red is NOT a king
+         */
+
+
+        assertEquals(
+            "Expected TRUE",
+            true, model.removePieceInModel(new Point (0, 0), new Point (2, 2)));
+        assertEquals(
+            "Expected FALSE: red can't jump backwards from (5, 5) to (5, 7)",
+            false, model.removePieceInModel(new Point (5, 5), new Point (3, 3)));
+        assertEquals(
+            "Expected FALSE: red can't jump backwards from (5, 5) to (3, 7)",
+            false, model.removePieceInModel(new Point (5, 5), new Point (3, 7)));
+        assertEquals(
+            "Expected TRUE: red can jump from (5, 5) to (7, 3)",
+            true, model.removePieceInModel(new Point (5, 5), new Point (7, 3)));
+        assertEquals(
+            "Expected TRUE: red can jump from (5, 5) to (7, 7)",
+            true, model.removePieceInModel(new Point (5, 5), new Point (7, 7)));
+
+        /**
+         * Red moves, red is a king
+         */
+
+        // Not implemented yet
+
+    }
+
 }
