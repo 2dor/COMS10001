@@ -64,4 +64,25 @@ public class ModelTests {
         assertEquals("The current player should be red after two turns", Colour.Red, model.getCurrentPlayer());
     }
 
+    @Test
+    public void testCorrectPieceIsReturned() throws Exception {
+        Set<Piece> pieces = new HashSet<Piece>();
+
+        Piece[] testPieces = new Piece[] {
+                new Piece(Colour.Red, 3, 5),
+                new Piece(Colour.Red, 1, 3),
+                new Piece(Colour.Red, 2, 2),
+        };
+
+        for (Piece piece : testPieces) {
+            pieces.add(piece);
+        }
+
+        DraughtsModel model = new DraughtsModel("Test", null, Colour.Red, pieces);
+
+        assertEquals("Expected piece on (3, 5)", testPieces[0], model.getPiece(3, 5));
+        assertEquals("Expected piece on (1, 3)", testPieces[1], model.getPiece(1, 3));
+        assertEquals("Expected piece on (2, 2)", testPieces[2], model.getPiece(2, 2));
+    }
+
 }
