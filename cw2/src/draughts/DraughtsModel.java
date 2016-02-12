@@ -80,8 +80,11 @@ public class DraughtsModel {
         piece.setY((int) destination.getY());
 
         boolean jump = removePiece(position, destination);
-        //Not fully implemented: If jump is true we would need to deal with
-        //subsequent moves
+		if (jump) {
+			Move newMove = getPlayerMove(validMoves(currentPlayer));
+        	if (newMove != null) play(newMove);
+		}
+
     }
 
     // If a Piece has been jumped over, it will be removed.
@@ -92,14 +95,14 @@ public class DraughtsModel {
     protected boolean removePiece(Point position, Point destination) {
         int x = (int) (destination.getX() - position.getX());
         int y = (int) (destination.getY() - position.getY());
-        if (x == 2) {
+        if (Math.abs(x) == 2 && Math.abs(y) == 2) {
             x = (int) (position.getX() + (x / 2));
             y = (int) (position.getY() + (y / 2));
             Piece piece = getPiece(x, y);
             pieces.remove(piece);
-            return false;
+            return true;
         }
-        return true;
+        return false;
     }
 
     // Returns the Move selected by the users.
