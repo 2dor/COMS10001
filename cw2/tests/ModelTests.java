@@ -34,7 +34,8 @@ public class ModelTests {
       public void turnInModel() {
           turn();
       }
-	  public void playInModel(Move move) {
+
+      public void playInModel(Move move) {
 		  play(move);
 	  }
 
@@ -181,6 +182,58 @@ public class ModelTests {
 		assertEquals("Expected to remove the attacking piece from the origin - (3, 5)", null, model.getPiece(3, 5));
 		assertEquals("Expected to move the attacking piece to the destination - (1, 7)", testPieces[3], model.getPiece(1, 7));
 		assertEquals("Expected to remove the attacked piece - (2, 6)", null, model.getPiece(2, 6));
+    }
+
+    @Test
+    public void testInitialisePieces() throws Exception {
+
+        /**
+        * We can use this code in the actual initialisePieces() method
+        */
+        /*
+        Set<Piece> pieces = new HashSet<Piece>();
+        for (int row = 0; row < 10; ++row) {
+            for (int col = 0; col < 10; ++col) {
+                if (row < 4 && (row + col) % 2 == 1) { // red pieces
+                    pieces.add(new Piece(Colour.Red, row, col));
+                } else if (row > 6 && (row + col) % 2 == 0) { // white pieces
+                    pieces.add(new Piece(Colour.White, row, col));
+                }
+            }
+        }
+        TestModel model = new TestModel("Test", new TestPlayer(), Colour.Red, pieces);
+        */
+        TestModel model = new TestModel("Test", new TestPlayer());
+        /**
+        * We assume the board is 10x10
+        * Red pieces on the top 4 rows, White on the bottom 4 rows
+        * All pieces must be on cells with an odd sum of their indices
+        */
+        for (int row = 0; row < 10; ++row) {
+            for (int col = 0; col < 10; ++col) {
+                Piece piece = model.getPiece(row, col);
+                String errorMessage = "(" + Integer.toString(row) + ", " +
+                    Integer.toString(col) + ")";
+                if (row < 4 && (row + col) % 2 == 1) { // red pieces
+                    Piece expectedPiece = new Piece(Colour.Red, row, col);
+                    assertEquals(
+                        errorMessage + " - no piece found/the colours differ. ",
+                        true, expectedPiece.equals(piece)
+                    );
+                } else if (row > 6 && (row + col) % 2 == 0) { // white pieces
+                    Piece expectedPiece = new Piece(Colour.White, row, col);
+                    assertEquals(
+                        errorMessage + " - no piece found/the colours differ. ",
+                        true, expectedPiece.equals(piece)
+                    );
+                } else { // We expect NO piece in the rest of the positions
+                    assertEquals(
+                        errorMessage + " should be empty. ",
+                        null, piece
+                    );
+                }
+            }
+        }
     }
 
 }
