@@ -159,7 +159,20 @@ public class DraughtsModel {
             if (isEmpty(piece.getX() - 1, piece.getY() + yOffset)) {
                 validMoves.add(new Move(piece, piece.getX() - 1, piece.getY() + yOffset));
             }
+			if (isEmpty(piece.getX() + 1, piece.getY() + yOffset)) {
+				validMoves.add(new Move(piece, piece.getX() + 1, piece.getY() + yOffset));
+			}
         }
+		Piece right = getPiece(piece.getX() + 1, piece.getY() + yOffset);
+		Piece left = getPiece(piece.getX() - 1, piece.getY() + yOffset);
+
+		if (isEmpty(piece.getX() - 2, piece.getY() + (2 * yOffset)) && left != null && left.getColour() != player) {
+			validMoves.add(new Move(piece, piece.getX() - 2, piece.getY() + yOffset));
+		}
+		if (isEmpty(piece.getX() + 2, piece.getY() + (2 * yOffset)) && right != null && left.getColour() != player) {
+			validMoves.add(new Move(piece, piece.getX() + 2, piece.getY() + yOffset));
+		}
+
         //TODO: We have given an implementation of how to calculate one of the valid
         // moves (single move to the left), it's your job now to calculate the rest.
         return validMoves;
