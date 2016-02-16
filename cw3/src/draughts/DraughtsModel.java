@@ -49,7 +49,15 @@ public class DraughtsModel {
     // Creates the initial Set of Pieces.
     // (0, 0) is the top left of the board.
     private void initialisePieces() {
-      //TODO:
+        for (int row = 0; row < 8; ++row) {
+            for (int col = 0; col < 8; ++col) {
+                if (col < 3 && (row + col) % 2 == 1) { // red pieces
+                    pieces.add(new Piece(Colour.White, row, col));
+                } else if (col > 4 && (row + col) % 2 == 1) { // white pieces
+                    pieces.add(new Piece(Colour.Red, row, col));
+                }
+            }
+        }
     }
 
     /**
