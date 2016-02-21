@@ -103,7 +103,7 @@ public class DraughtsModel {
     // @param position the position of the jumping Piece.
     // @param destination the destination of the jumping Piece.
     // @return true if a Piece has been jumped over.
-    protected boolean removePiece(Point position, Point destination) {
+	protected boolean removePiece(Point position, Point destination) {
         int x = (int) (destination.getX() - position.getX());
         int y = (int) (destination.getY() - position.getY());
         if (x % 2 == 0) {
@@ -146,8 +146,14 @@ public class DraughtsModel {
     // @param player the Colour of the player for whom the Moves should be generated.
     // @return a Set of valid Moves for a player.
     private Set<Move> validMoves(Colour player) {
-        //TODO:
-        return new HashSet<Move>();
+		Set<Move> validMoves = new HashSet<Move>();
+        for(Piece piece: pieces){
+			if(piece.getColour() == player){
+				validMoves.addAll(validMoves(player, piece, 1, false));
+				if (piece.isKing()) validMoves.addAll(validMoves(player, piece, -1, false));
+			}
+		}
+        return validMoves;
     }
 
     // Returns the Set of valid Moves for a normal Piece. These will only be one move ahead.
@@ -167,7 +173,20 @@ public class DraughtsModel {
             if (isEmpty(piece.getX() - 1, piece.getY() + yOffset)) {
                 validMoves.add(new Move(piece, piece.getX() - 1, piece.getY() + yOffset));
             }
+			if (isEmpty(piece.getX() + 1, piece.getY() + yOffset)) {
+				validMoves.add(new Move(piece, piece.getX() + 1, piece.getY() + yOffset));
+			}
         }
+		Piece right = getPiece(piece.getX() + 1, piece.getY() + yOffset);
+		Piece left = getPiece(piece.getX() - 1, piece.getY() + yOffset);
+
+		if (isEmpty(piece.getX() - 2, piece.getY() + (2 * yOffset)) && left != null && left.getColour() != player) {
+			validMoves.add(new Move(piece, piece.getX() - 2, piece.getY() + (2 * yOffset)));
+		}
+		if (isEmpty(piece.getX() + 2, piece.getY() + (2 * yOffset)) && right != null && right.getColour() != player) {
+			validMoves.add(new Move(piece, piece.getX() + 2, piece.getY() + (2 * yOffset)));
+		}
+
         //TODO: We have given an implementation of how to calculate one of the valid
         // moves (single move to the left), it's your job now to calculate the rest.
         return validMoves;
