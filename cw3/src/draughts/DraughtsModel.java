@@ -254,7 +254,14 @@ public class DraughtsModel {
      * @return true if the game is over.
      */
     public boolean isGameOver() {
-        //TODO:
+		int countWhite = 0;
+		int countRed = 0;
+		for (Piece piece : pieces) {
+			if (piece.getColour() == Colour.White) countWhite++;
+			if (piece.getColour() == Colour.Red) countRed++;
+		}
+		if(countWhite == 0 || countRed == 0) return true;
+		if(validMoves(currentPlayer).size() == 0) return true;
         return false;
     }
 
