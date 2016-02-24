@@ -42,6 +42,14 @@
     <javac debug="true" srcdir="${tests.dir}" includeantruntime="false" destdir="${test_classes.dir}" classpathref="tests_classpath"/>
   </target>
 
+  <path id="classpath.test">
+    <fileset dir="." includes="**/*junit.jar" />
+  </path>
+
+  <taskdef name="junit" classname="org.apache.tools.ant.taskdefs.optional.junit.JUnitTask">
+    <classpath refid="classpath.test"/>
+  </taskdef>
+
   <target name="test" depends="compile-tests">
     <copy todir="${test_classes.dir}">
       <fileset dir="${resources.dir}"/>
