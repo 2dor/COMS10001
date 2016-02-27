@@ -24,7 +24,7 @@ public class TestGraphReader extends GraphReader<Integer, Integer> {
         }
         BufferedReader reader = new BufferedReader(new InputStreamReader(input));
 
-        UndirectedGraph graph = new UndirectedGraph();
+        UndirectedGraph<Integer, Integer> graph = new UndirectedGraph<Integer, Integer>();
 
         String[] topLine = reader.readLine().split(" ");
         int numberOfNodes = Integer.parseInt(topLine[0]);

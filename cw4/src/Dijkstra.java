@@ -12,6 +12,8 @@ public class Dijkstra {
     public List<Integer> shortestPath(Integer origin, Integer destination) {
         //TODO: You should return an ordered list of the node the indecies you
         // visit in your shortest path from origin to destination.
+        List<Integer> myList = new LinkedList<Integer>();
+        return myList;
     }
 
 }
