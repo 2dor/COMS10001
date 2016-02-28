@@ -46,13 +46,13 @@ public class Prim {
             minimum = R.get(0);
 
             for (Edge r : R) {
-                System.out.println(r);
+                //System.out.println(r);
                 if ((Integer) r.getData() < (Integer) minimum.getData())
                     minimum = r;
             }
-            System.out.print("\n");
-            System.out.println(minimum.toString());
-            System.out.print("\n");
+            // System.out.print("\n");
+            // System.out.println(minimum.toString());
+            // System.out.print("\n");
             //System.out.println(minimum.toString());
             W.add(minimum.getTarget());
             // Add node
