@@ -28,6 +28,8 @@ public class Prim {
         // bullshit values
         Edge<Integer, Integer> minimum = new Edge<Integer,Integer>(new Node<Integer>(1), new Node<Integer>(2), 0);
         boolean flag = false;
+        boolean flagSource = false;
+        boolean flagTarget = false;
         do {
 
             for (Edge e : graph.getEdgesFrom(newNode)) {
@@ -60,8 +62,20 @@ public class Prim {
             minimumSpanningTree.add(minimum);
             R.remove(minimum);
             newNode = minimum.getTarget();
+            for (Edge e : graph.getEdges()) {
+                flagSource = false;
+                flagTarget = false;
+                for (Node n : W) {
+                    if(e.getSource() == n)
+                        flagSource = true;
+                    if(e.getTarget() == n)
+                        flagTarget = true;
+                }
+                if (flagSource && flagTarget)
+                    R.remove(e);
+            }
         } while(W.size() < V.size());
-        System.out.println(minimumSpanningTree.toString());
+        //System.out.println(minimumSpanningTree.toString());
         //System.out.println("\n");
         // System.out.println(R.get(0));
         // System.out.println(R.get(1));
