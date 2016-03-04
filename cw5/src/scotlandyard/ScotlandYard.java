@@ -254,7 +254,8 @@ public class ScotlandYard implements ScotlandYardView, Receiver {
      * @return true when the game is ready to be played, false otherwise.
      */
     public boolean isReady() {
-        //TODO:
+        if (numberOfDetectives + 1 == playersInGame.size())
+            return true;
         return false;
     }
 
@@ -289,8 +290,19 @@ public class ScotlandYard implements ScotlandYardView, Receiver {
      * @return a list of booleans that indicate the turns where MrX reveals himself.
      */
     public List<Boolean> getRounds() {
-        //TODO:
-        return new ArrayList<Boolean>();
+        List<Boolean> roundsMrXReveals = new ArrayList<Boolean>();
+        // insert 25 false elements; we won't use the 0th round
+        for (int i = 0; i <= 24; ++i) {
+            roundsMrXReveals.add(false);
+        }
+
+        roundsMrXReveals.set(3, true);
+        roundsMrXReveals.set(8, true);
+        roundsMrXReveals.set(13, true);
+        roundsMrXReveals.set(18, true);
+        roundsMrXReveals.set(24, true);
+
+        return roundsMrXReveals;
     }
 
 }
