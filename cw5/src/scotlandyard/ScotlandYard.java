@@ -30,7 +30,6 @@ public class ScotlandYard implements ScotlandYardView, Receiver {
         this.queue = queue;
         this.gameId = gameId;
         this.random = new Random();
-        //TODO:
         this.graph = graph;
         this.rounds = rounds;
         this.numberOfDetectives = numberOfDetectives;
@@ -167,7 +166,7 @@ public class ScotlandYard implements ScotlandYardView, Receiver {
      * @return true if the player has joined successfully.
      */
     public boolean join(Player player, Colour colour, int location, Map<Ticket, Integer> tickets) {
-        for(PlayerData p : playersInGame){
+        for (PlayerData p : playersInGame) {
             if (colour == p.getColour()) return false;
         }
         PlayerData joinPlayer = new PlayerData(player, colour, location, tickets);
@@ -184,7 +183,7 @@ public class ScotlandYard implements ScotlandYardView, Receiver {
      */
     public List<Colour> getPlayers() {
         List<Colour> playerColours = new ArrayList<Colour>();
-        for(PlayerData p : playersInGame){
+        for (PlayerData p : playersInGame) {
             playerColours.add(p.getColour());
         }
         return playerColours;
@@ -211,8 +210,14 @@ public class ScotlandYard implements ScotlandYardView, Receiver {
      * MrX is revealed in round n when {@code rounds.get(n)} is true.
      */
     public int getPlayerLocation(Colour colour) {
-        //TODO:
-        return 0;
+        int playerLocation = 0;
+        for (PlayerData p : playersInGame) {
+            if (colour == p.getColour()) {
+                playerLocation = p.getLocation();
+                break;
+            }
+        }
+        return playerLocation;
     }
 
     /**
@@ -224,10 +229,10 @@ public class ScotlandYard implements ScotlandYardView, Receiver {
      */
     public int getPlayerTickets(Colour colour, Ticket ticket) {
         Integer tickets = 0;
-        for (PlayerData p : playersInGame){
-            if (colour == p.getColour()){
+        for (PlayerData p : playersInGame) {
+            if (colour == p.getColour()) {
                 tickets = p.getTickets().get(ticket);
-            };
+            }
         }
         return tickets;
     }
