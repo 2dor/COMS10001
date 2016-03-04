@@ -12,6 +12,10 @@ public class ScotlandYard implements ScotlandYardView, Receiver {
     protected MapQueue<Integer, Token> queue;
     protected Integer gameId;
     protected Random random;
+    protected ScotlandYardGraph graph;
+    protected List<Boolean> rounds;
+    protected Integer numberOfDetectives;
+    protected List<PlayerData> playersInGame;
 
     /**
      * Constructs a new ScotlandYard object. This is used to perform all of the game logic.
@@ -27,6 +31,10 @@ public class ScotlandYard implements ScotlandYardView, Receiver {
         this.gameId = gameId;
         this.random = new Random();
         //TODO:
+        this.graph = graph;
+        this.rounds = rounds;
+        this.numberOfDetectives = numberOfDetectives;
+        this.playersInGame = new ArrayList<PlayerData>();
     }
 
     /**
@@ -159,8 +167,12 @@ public class ScotlandYard implements ScotlandYardView, Receiver {
      * @return true if the player has joined successfully.
      */
     public boolean join(Player player, Colour colour, int location, Map<Ticket, Integer> tickets) {
-        //TODO:
-        return false;
+        for(PlayerData p : playersInGame){
+            if (colour == p.getColour()) return false;
+        }
+        PlayerData joinPlayer = new PlayerData(player, colour, location, tickets);
+        playersInGame.add(joinPlayer);
+        return true;
     }
 
     /**
@@ -171,8 +183,11 @@ public class ScotlandYard implements ScotlandYardView, Receiver {
      * @return The list of players.
      */
     public List<Colour> getPlayers() {
-        //TODO:
-        return new ArrayList<Colour>();
+        List<Colour> playerColours = new ArrayList<Colour>();
+        for(PlayerData p : playersInGame){
+            playerColours.add(p.getColour());
+        }
+        return playerColours;
     }
 
     /**
@@ -208,8 +223,13 @@ public class ScotlandYard implements ScotlandYardView, Receiver {
      * @return The number of tickets of the given player.
      */
     public int getPlayerTickets(Colour colour, Ticket ticket) {
-        //TODO:
-        return -1;
+        Integer tickets = 0;
+        for (PlayerData p : playersInGame){
+            if (colour == p.getColour()){
+                tickets = p.getTickets().get(ticket);
+            };
+        }
+        return tickets;
     }
 
     /**
