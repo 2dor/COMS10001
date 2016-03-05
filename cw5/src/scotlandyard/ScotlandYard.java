@@ -2,7 +2,7 @@ package scotlandyard;
 
 import java.io.IOException;
 import java.util.*;
-
+import graph.*;
 /**
  * A class to perform all of the game logic.
  */
@@ -16,6 +16,9 @@ public class ScotlandYard implements ScotlandYardView, Receiver {
     protected List<Boolean> rounds;
     protected Integer numberOfDetectives;
     protected List<PlayerData> playersInGame;
+    private Integer mrXLastLocation;
+    private Integer currentRound;
+    private Colour currentPlayer;
 
     /**
      * Constructs a new ScotlandYard object. This is used to perform all of the game logic.
@@ -34,7 +37,25 @@ public class ScotlandYard implements ScotlandYardView, Receiver {
         this.rounds = rounds;
         this.numberOfDetectives = numberOfDetectives;
         this.playersInGame = new ArrayList<PlayerData>();
+        this.currentRound = 0;
+        this.mrXLastLocation = 0;
+        this.currentPlayer = Colour.Black;
     }
+
+    // MAKE NEW CONSTRUCTOR?
+    // List<Boolean> roundsMrXReveals = new ArrayList<Boolean>();
+    // // insert 25 false elements; we won't use the 0th round
+    // for (int i = 0; i <= 24; ++i) {
+    //     roundsMrXReveals.add(false);
+    // }
+    //
+    // roundsMrXReveals.set(3, true);
+    // roundsMrXReveals.set(8, true);
+    // roundsMrXReveals.set(13, true);
+    // roundsMrXReveals.set(18, true);
+    // roundsMrXReveals.set(24, true);
+    //
+    // return roundsMrXReveals;
 
     /**
      * Starts playing the game.
@@ -52,6 +73,7 @@ public class ScotlandYard implements ScotlandYardView, Receiver {
         Integer token = getSecretToken();
         queue.put(gameId, new Token(token, getCurrentPlayer(), System.currentTimeMillis()));
         notifyPlayer(getCurrentPlayer(), token);
+
     }
 
     /**
@@ -87,13 +109,26 @@ public class ScotlandYard implements ScotlandYardView, Receiver {
      */
     private void notifyPlayer(Colour colour, Integer token) {
         //TODO:
+        for (PlayerData p : playersInGame) {
+            if (p.getColour() == colour){
+                p.getPlayer().notify(p.getLocation(), validMoves(colour), token, this);
+            }
+        }
+
     }
 
     /**
      * Passes priority onto the next player whose turn it is to play.
      */
     protected void nextPlayer() {
-        //TODO:
+        int newIndex = 0;
+        for (int i = 0; i < playersInGame.size(); ++i) {
+            if (playersInGame.get(i).getColour() == currentPlayer) {
+                newIndex = (i + 1) % playersInGame.size();
+                break;
+            }
+        }
+        currentPlayer = playersInGame.get(newIndex).getColour();
     }
 
     /**
@@ -141,8 +176,47 @@ public class ScotlandYard implements ScotlandYardView, Receiver {
      * @return the list of valid moves for a given player.
      */
     public List<Move> validMoves(Colour player) {
-        //TODO:
-        return new ArrayList<Move>();
+        List<Move> listOfValidMoves = new ArrayList<Move>();
+        PlayerData playerAux = playersInGame.get(0);
+        for (PlayerData p : playersInGame) {
+            if (p.getColour() == player) {
+                playerAux = p;
+                break;
+            }
+        }
+        boolean flagUnreachable = false;
+        Node<Integer> nodeLocation = graph.getNode(playerAux.getLocation());
+        for (Edge<Integer, Transport> e : graph.getEdgesFrom(nodeLocation)) {
+            flagUnreachable = false;
+            for (PlayerData p : playersInGame) {
+                // Occupied node (if the player is not mrX and one of
+                // the detective is on the destination node then mark it as unreachable)
+                if (p.getColour() != Colour.Black && p.getLocation() == e.getTarget().getIndex()) {
+                    flagUnreachable = true;
+                    break;
+                }
+            }
+            // No tickets (if a player has no tickers to get to the destination node
+            // then mark it as unreachable)
+            if (playerAux.getTickets().get(Ticket.fromTransport(e.getData())) == 0){
+                flagUnreachable = true;
+            }
+
+            if (flagUnreachable == false) {
+                listOfValidMoves.add(MoveTicket.instance(player, Ticket.fromTransport(e.getData()), e.getTarget().getIndex()));
+            }
+
+            if (playerAux.getColour() == Colour.Black && playerAux.getTickets().get(Ticket.Secret) != 0) {
+                listOfValidMoves.add(MoveTicket.instance(player, Ticket.Secret, e.getTarget().getIndex()));
+            }
+        }
+
+        // If no moves available include pass move.
+        if(listOfValidMoves.size() == 0 && player != Colour.Black){
+            listOfValidMoves.add(MovePass.instance(player));
+        }
+        return listOfValidMoves;
+
     }
 
     /**
@@ -217,6 +291,15 @@ public class ScotlandYard implements ScotlandYardView, Receiver {
                 break;
             }
         }
+        // Mr X's last available position
+        if (colour == Colour.Black) {
+            if (rounds.get(currentRound) == false) {
+                return mrXLastLocation;
+            } else {
+                mrXLastLocation = playerLocation;
+                return mrXLastLocation;
+            }
+        }
         return playerLocation;
     }
 
@@ -265,8 +348,7 @@ public class ScotlandYard implements ScotlandYardView, Receiver {
      * @return The colour of the current player.
      */
     public Colour getCurrentPlayer() {
-        //TODO:
-        return Colour.Black;
+        return currentPlayer;
     }
 
     /**
@@ -277,8 +359,7 @@ public class ScotlandYard implements ScotlandYardView, Receiver {
      * @return the number of moves MrX has played.
      */
     public int getRound() {
-        //TODO:
-        return -1;
+        return currentRound;
     }
 
     /**
@@ -290,19 +371,7 @@ public class ScotlandYard implements ScotlandYardView, Receiver {
      * @return a list of booleans that indicate the turns where MrX reveals himself.
      */
     public List<Boolean> getRounds() {
-        List<Boolean> roundsMrXReveals = new ArrayList<Boolean>();
-        // insert 25 false elements; we won't use the 0th round
-        for (int i = 0; i <= 24; ++i) {
-            roundsMrXReveals.add(false);
-        }
-
-        roundsMrXReveals.set(3, true);
-        roundsMrXReveals.set(8, true);
-        roundsMrXReveals.set(13, true);
-        roundsMrXReveals.set(18, true);
-        roundsMrXReveals.set(24, true);
-
-        return roundsMrXReveals;
+        return rounds;
     }
 
 }
