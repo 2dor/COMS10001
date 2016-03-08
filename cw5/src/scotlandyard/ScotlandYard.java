@@ -142,13 +142,39 @@ public class ScotlandYard implements ScotlandYardView, Receiver {
         else if (move instanceof MovePass) play((MovePass) move);
     }
 
+	private PlayerData getPlayerData(Colour playerColour){
+		PlayerData player = playersInGame.get(0);
+		for (PlayerData p : playersInGame) {
+			if (p.getColour() == playerColour) {
+				player = p;
+				break;
+			}
+		}
+		return player;
+	}
+
     /**
      * Plays a MoveTicket.
      *
      * @param move the MoveTicket to play.
      */
     protected void play(MoveTicket move) {
-        //TODO:
+        Colour playerColour = move.colour;
+		Ticket ticket = move.ticket;
+		int target = move.target;
+		// Only proceed if the move is made by the current player.
+		if (getCurrentPlayer() == playerColour) {
+			PlayerData player = getPlayerData(playerColour);
+			player.removeTicket(ticket);
+			player.setLocation(target);
+			// If not mrX then give him the ticket else increase the round number.
+			if (playerColour != Colour.Black) {
+				PlayerData mrX = getPlayerData(Colour.Black);
+				mrX.addTicket(ticket);
+			} else {
+				currentRound++;
+			}
+		}
     }
 
     /**
@@ -157,7 +183,10 @@ public class ScotlandYard implements ScotlandYardView, Receiver {
      * @param move the MoveDouble to play.
      */
     protected void play(MoveDouble move) {
-        //TODO:
+        MoveTicket move1 = move.move1;
+		MoveTicket move2 = move.move2;
+		play(move1);
+		play(move2);
     }
 
     /**
@@ -166,7 +195,10 @@ public class ScotlandYard implements ScotlandYardView, Receiver {
      * @param move the MovePass to play.
      */
     protected void play(MovePass move) {
-        //TODO:
+		Colour playerColour = move.colour;
+		if (playerColour == Colour.Black) {
+			currentRound++;
+		}
     }
 
     /**
@@ -347,6 +379,7 @@ public class ScotlandYard implements ScotlandYardView, Receiver {
      */
     public int getPlayerLocation(Colour colour) {
         int playerLocation = 0;
+		int mrXLastLocation = 0;
         for (PlayerData p : playersInGame) {
             if (colour == p.getColour()) {
                 playerLocation = p.getLocation();
@@ -435,5 +468,7 @@ public class ScotlandYard implements ScotlandYardView, Receiver {
     public List<Boolean> getRounds() {
         return rounds;
     }
+
+
 
 }
