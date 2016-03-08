@@ -175,7 +175,7 @@ public class ScotlandYard implements ScotlandYardView, Receiver {
      * @param player the player whose moves we want to see.
      * @return the list of valid moves for a given player.
      */
-    public List<Move> validMoves(Colour player) {
+     public List<Move> validMoves(Colour player) {
         List<Move> listOfValidMoves = new ArrayList<Move>();
         PlayerData playerAux = playersInGame.get(0);
         for (PlayerData p : playersInGame) {
@@ -184,6 +184,17 @@ public class ScotlandYard implements ScotlandYardView, Receiver {
                 break;
             }
         }
+        generateMoves(playerAux, listOfValidMoves);
+        // If no moves available include pass move.
+        if(listOfValidMoves.size() == 0 && player != Colour.Black){
+            listOfValidMoves.add(MovePass.instance(player));
+        }
+        return listOfValidMoves;
+
+    }
+
+
+    private void generateMoves(PlayerData playerAux, List<Move> listOfValidMoves) {
         boolean flagUnreachable = false;
         Node<Integer> nodeLocation = graph.getNode(playerAux.getLocation());
         for (Edge<Integer, Transport> e : graph.getEdgesFrom(nodeLocation)) {
@@ -191,7 +202,7 @@ public class ScotlandYard implements ScotlandYardView, Receiver {
             for (PlayerData p : playersInGame) {
                 // Occupied node (if the player is not mrX and one of
                 // the detective is on the destination node then mark it as unreachable)
-                if (p.getColour() != Colour.Black && p.getLocation() == e.getTarget().getIndex()) {
+                if (p.getColour() != Colour.Black && p.getLocation() == (Integer) e.getTarget().getIndex()) {
                     flagUnreachable = true;
                     break;
                 }
@@ -203,20 +214,71 @@ public class ScotlandYard implements ScotlandYardView, Receiver {
             }
 
             if (flagUnreachable == false) {
-                listOfValidMoves.add(MoveTicket.instance(player, Ticket.fromTransport(e.getData()), e.getTarget().getIndex()));
+                MoveTicket ticket1 = MoveTicket.instance(playerAux.getColour(), Ticket.fromTransport(e.getData()), e.getTarget().getIndex());
+                listOfValidMoves.add(ticket1);
+                if (playerAux.getColour() == Colour.Black &&
+                    playerAux.getTickets().get(Ticket.Double) > 0) {
+                        Map<Ticket, Integer> allTickets = playerAux.getTickets();
+                        Ticket key = Ticket.fromTransport(e.getData());
+                        allTickets.put(key, allTickets.get(key) - 1);
+                        playerAux.setTickets(allTickets);
+
+                        mrXDoubleMoves(playerAux, e, ticket1, listOfValidMoves);
+
+                        allTickets.put(key, allTickets.get(key) + 1);
+                        playerAux.setTickets(allTickets);
+                }
             }
 
-            if (playerAux.getColour() == Colour.Black && playerAux.getTickets().get(Ticket.Secret) != 0) {
-                listOfValidMoves.add(MoveTicket.instance(player, Ticket.Secret, e.getTarget().getIndex()));
+            if (flagUnreachable == false && playerAux.getColour() == Colour.Black && playerAux.getTickets().get(Ticket.Secret) != 0) {
+                MoveTicket ticket1 = MoveTicket.instance(playerAux.getColour(), Ticket.Secret, e.getTarget().getIndex());
+                listOfValidMoves.add(ticket1);
+                if (playerAux.getTickets().get(Ticket.Double) > 0) {
+                    Map<Ticket, Integer> allTickets = playerAux.getTickets();
+                    Ticket key = Ticket.Secret;
+                    allTickets.put(key, allTickets.get(key) - 1);
+                    playerAux.setTickets(allTickets);
+
+                    mrXDoubleMoves(playerAux, e, ticket1, listOfValidMoves);
+
+                    allTickets.put(key, allTickets.get(key) + 1);
+                    playerAux.setTickets(allTickets);
+                }
             }
         }
+    }
+    //TODO: send ticket1
+    private void mrXDoubleMoves(PlayerData playerAux, Edge previousEdge, MoveTicket ticket1, List<Move> listOfValidMoves) {
+        boolean flagUnreachable = false;
+        Integer middle = (Integer)previousEdge.getTarget().getIndex();
+        Node<Integer> nodeLocation = graph.getNode(middle);
+        for (Edge<Integer, Transport> e : graph.getEdgesFrom(nodeLocation)) {
+            flagUnreachable = false;
+            for (PlayerData p : playersInGame) {
+                // Occupied node (if the player is not mrX and one of
+                // the detective is on the destination node then mark it as unreachable)
+                if (p.getColour() != Colour.Black && p.getLocation() == (Integer) e.getTarget().getIndex()) {
+                    flagUnreachable = true;
+                    break;
+                }
+            }
+            // No tickets (if a player has no tickers to get to the destination node
+            // then mark it as unreachable)
+            if (playerAux.getTickets().get(Ticket.fromTransport(e.getData())) == 0){
+                flagUnreachable = true;
+            }
 
-        // If no moves available include pass move.
-        if(listOfValidMoves.size() == 0 && player != Colour.Black){
-            listOfValidMoves.add(MovePass.instance(player));
+            // Previous ticket + previous with normal ticket
+            if (flagUnreachable == false) {
+                MoveTicket ticket2 = MoveTicket.instance(playerAux.getColour(), Ticket.fromTransport(e.getData()), e.getTarget().getIndex());
+                listOfValidMoves.add(MoveDouble.instance(playerAux.getColour(), ticket1, ticket2));
+            }
+            // Previous ticket + ticket with secret move
+            if (flagUnreachable == false && playerAux.getColour() == Colour.Black && playerAux.getTickets().get(Ticket.Secret) != 0) {
+                MoveTicket ticket2 = MoveTicket.instance(playerAux.getColour(), Ticket.Secret, e.getTarget().getIndex());
+                listOfValidMoves.add(MoveDouble.instance(playerAux.getColour(), ticket1, ticket2));
+            }
         }
-        return listOfValidMoves;
-
     }
 
     /**
