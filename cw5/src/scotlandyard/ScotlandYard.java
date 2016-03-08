@@ -42,21 +42,6 @@ public class ScotlandYard implements ScotlandYardView, Receiver {
         this.currentPlayer = Colour.Black;
     }
 
-    // MAKE NEW CONSTRUCTOR?
-    // List<Boolean> roundsMrXReveals = new ArrayList<Boolean>();
-    // // insert 25 false elements; we won't use the 0th round
-    // for (int i = 0; i <= 24; ++i) {
-    //     roundsMrXReveals.add(false);
-    // }
-    //
-    // roundsMrXReveals.set(3, true);
-    // roundsMrXReveals.set(8, true);
-    // roundsMrXReveals.set(13, true);
-    // roundsMrXReveals.set(18, true);
-    // roundsMrXReveals.set(24, true);
-    //
-    // return roundsMrXReveals;
-
     /**
      * Starts playing the game.
      */
@@ -108,13 +93,8 @@ public class ScotlandYard implements ScotlandYardView, Receiver {
      * @param token the secret token for the move.
      */
     private void notifyPlayer(Colour colour, Integer token) {
-        //TODO:
-        for (PlayerData p : playersInGame) {
-            if (p.getColour() == colour){
-                p.getPlayer().notify(p.getLocation(), validMoves(colour), token, this);
-            }
-        }
-
+		PlayerData player = getPlayerData(colour);
+        player.getPlayer().notify(player.getLocation(), validMoves(colour), token, this);
     }
 
     /**
@@ -142,10 +122,11 @@ public class ScotlandYard implements ScotlandYardView, Receiver {
         else if (move instanceof MovePass) play((MovePass) move);
     }
 
-	private PlayerData getPlayerData(Colour playerColour){
+	// Given a colour this function returns player data.
+	private PlayerData getPlayerData(Colour colour){
 		PlayerData player = playersInGame.get(0);
 		for (PlayerData p : playersInGame) {
-			if (p.getColour() == playerColour) {
+			if (p.getColour() == colour) {
 				player = p;
 				break;
 			}
@@ -159,16 +140,14 @@ public class ScotlandYard implements ScotlandYardView, Receiver {
      * @param move the MoveTicket to play.
      */
     protected void play(MoveTicket move) {
-        Colour playerColour = move.colour;
+        Colour colour = move.colour;
 		Ticket ticket = move.ticket;
 		int target = move.target;
-		// Only proceed if the move is made by the current player.
-		if (getCurrentPlayer() == playerColour) {
-			PlayerData player = getPlayerData(playerColour);
+		if (getCurrentPlayer() == colour) {
+			PlayerData player = getPlayerData(colour);
 			player.removeTicket(ticket);
 			player.setLocation(target);
-			// If not mrX then give him the ticket else increase the round number.
-			if (playerColour != Colour.Black) {
+			if (colour != Colour.Black) {
 				PlayerData mrX = getPlayerData(Colour.Black);
 				mrX.addTicket(ticket);
 			} else {
@@ -209,15 +188,8 @@ public class ScotlandYard implements ScotlandYardView, Receiver {
      */
      public List<Move> validMoves(Colour player) {
         List<Move> listOfValidMoves = new ArrayList<Move>();
-        PlayerData playerAux = playersInGame.get(0);
-        for (PlayerData p : playersInGame) {
-            if (p.getColour() == player) {
-                playerAux = p;
-                break;
-            }
-        }
+        PlayerData playerAux = getPlayerData(player);
         generateMoves(playerAux, listOfValidMoves);
-        // If no moves available include pass move.
         if(listOfValidMoves.size() == 0 && player != Colour.Black){
             listOfValidMoves.add(MovePass.instance(player));
         }
@@ -248,17 +220,10 @@ public class ScotlandYard implements ScotlandYardView, Receiver {
             if (flagUnreachable == false) {
                 MoveTicket ticket1 = MoveTicket.instance(playerAux.getColour(), Ticket.fromTransport(e.getData()), e.getTarget().getIndex());
                 listOfValidMoves.add(ticket1);
-                if (playerAux.getColour() == Colour.Black &&
-                    playerAux.getTickets().get(Ticket.Double) > 0) {
-                        Map<Ticket, Integer> allTickets = playerAux.getTickets();
-                        Ticket key = Ticket.fromTransport(e.getData());
-                        allTickets.put(key, allTickets.get(key) - 1);
-                        playerAux.setTickets(allTickets);
-
+                if (playerAux.getColour() == Colour.Black && playerAux.getTickets().get(Ticket.Double) > 0) {
+						playerAux.removeTicket(Ticket.fromTransport(e.getData()));
                         mrXDoubleMoves(playerAux, e, ticket1, listOfValidMoves);
-
-                        allTickets.put(key, allTickets.get(key) + 1);
-                        playerAux.setTickets(allTickets);
+						playerAux.addTicket(Ticket.fromTransport(e.getData()));
                 }
             }
 
@@ -266,23 +231,17 @@ public class ScotlandYard implements ScotlandYardView, Receiver {
                 MoveTicket ticket1 = MoveTicket.instance(playerAux.getColour(), Ticket.Secret, e.getTarget().getIndex());
                 listOfValidMoves.add(ticket1);
                 if (playerAux.getTickets().get(Ticket.Double) > 0) {
-                    Map<Ticket, Integer> allTickets = playerAux.getTickets();
-                    Ticket key = Ticket.Secret;
-                    allTickets.put(key, allTickets.get(key) - 1);
-                    playerAux.setTickets(allTickets);
-
+					playerAux.removeTicket(Ticket.fromTransport(e.getData()));
                     mrXDoubleMoves(playerAux, e, ticket1, listOfValidMoves);
-
-                    allTickets.put(key, allTickets.get(key) + 1);
-                    playerAux.setTickets(allTickets);
+					playerAux.addTicket(Ticket.fromTransport(e.getData()));
                 }
             }
         }
     }
-    //TODO: send ticket1
+
     private void mrXDoubleMoves(PlayerData playerAux, Edge previousEdge, MoveTicket ticket1, List<Move> listOfValidMoves) {
         boolean flagUnreachable = false;
-        Integer middle = (Integer)previousEdge.getTarget().getIndex();
+        Integer middle = (Integer) previousEdge.getTarget().getIndex();
         Node<Integer> nodeLocation = graph.getNode(middle);
         for (Edge<Integer, Transport> e : graph.getEdgesFrom(nodeLocation)) {
             flagUnreachable = false;
@@ -378,14 +337,9 @@ public class ScotlandYard implements ScotlandYardView, Receiver {
      * MrX is revealed in round n when {@code rounds.get(n)} is true.
      */
     public int getPlayerLocation(Colour colour) {
-        int playerLocation = 0;
 		int mrXLastLocation = 0;
-        for (PlayerData p : playersInGame) {
-            if (colour == p.getColour()) {
-                playerLocation = p.getLocation();
-                break;
-            }
-        }
+		PlayerData player = getPlayerData(colour);
+		int playerLocation = player.getLocation();
         // Mr X's last available position
         if (colour == Colour.Black) {
             if (rounds.get(currentRound) == false) {
@@ -406,12 +360,8 @@ public class ScotlandYard implements ScotlandYardView, Receiver {
      * @return The number of tickets of the given player.
      */
     public int getPlayerTickets(Colour colour, Ticket ticket) {
-        Integer tickets = 0;
-        for (PlayerData p : playersInGame) {
-            if (colour == p.getColour()) {
-                tickets = p.getTickets().get(ticket);
-            }
-        }
+		PlayerData player = getPlayerData(colour);
+        Integer tickets = player.getTickets().get(ticket);
         return tickets;
     }
 
