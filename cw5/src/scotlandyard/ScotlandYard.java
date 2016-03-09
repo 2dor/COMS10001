@@ -38,6 +38,7 @@ public class ScotlandYard implements ScotlandYardView, Receiver {
         this.rounds = rounds;
         this.numberOfDetectives = numberOfDetectives;
         this.playersInGame = new ArrayList<PlayerData>();
+        this.spectatorsInGame = new ArrayList<Spectator>();
         this.currentRound = 0;
         this.mrXLastLocation = 0;
         this.currentPlayer = Colour.Black;
@@ -289,6 +290,17 @@ public class ScotlandYard implements ScotlandYardView, Receiver {
      */
     public void spectate(Spectator spectator) {
         spectatorsInGame.add(spectator);
+    }
+
+    /**
+     * Notifies all spectators about the move
+     *
+     * @param move currently made move.
+     */
+    private void notifySpectators(Move move) {
+        for (Spectator s : spectatorsInGame) {
+            s.notify(move);
+        }
     }
 
     /**
