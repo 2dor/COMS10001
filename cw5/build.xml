@@ -187,7 +187,7 @@
       <batchtest fork="no" todir="${test.dir}">
         <fileset dir="${test.dir}">
           <include name="IsGameOverTests.java"/>
-          <include name="getWinningPlayersTests.java"/>
+          <include name="GetWinningPlayersTests.java"/>
         </fileset>
       </batchtest>
     </junit>
