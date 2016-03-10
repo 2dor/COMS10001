@@ -20,6 +20,7 @@ public class ScotlandYard implements ScotlandYardView, Receiver {
     private Integer mrXLastLocation;
     private Integer currentRound;
     private Colour currentPlayer;
+    private boolean mrXWon;
 
     /**
      * Constructs a new ScotlandYard object. This is used to perform all of the game logic.
@@ -41,6 +42,7 @@ public class ScotlandYard implements ScotlandYardView, Receiver {
         this.spectatorsInGame = new ArrayList<Spectator>();
         this.currentRound = 0;
         this.mrXLastLocation = 0;
+        this.mrXWon = true;
         this.currentPlayer = Colour.Black;
     }
 
@@ -375,8 +377,19 @@ public class ScotlandYard implements ScotlandYardView, Receiver {
      * @return A set containing the colours of the winning players
      */
     public Set<Colour> getWinningPlayers() {
-        //TODO:
-        return new HashSet<Colour>();
+        Set<Colour> winners = new HashSet<Colour>();
+        if (isGameOver()) {
+            if (mrXWon) {
+                winners.add(Colour.Black);
+            } else {
+                for (PlayerData p : playersInGame) {
+                    if (p.getColour() != Colour.Black) {
+                        winners.add(p.getColour());
+                    }
+                }
+            }
+        }
+        return winners;
     }
 
     /**
@@ -424,23 +437,48 @@ public class ScotlandYard implements ScotlandYardView, Receiver {
      *
      * @return true when the game is over, false otherwise.
      */
-    public boolean isGameOver() {/*
+    public boolean isGameOver() {
+        if (!isReady())
+            return false;
+        if (numberOfDetectives == 0 && playersInGame.size() == 1)
+            return true;
+
         PlayerData mrX = getPlayerData(Colour.Black);
         //Detectives Win!
+        //If mrx out of moves
+        if (currentPlayer == Colour.Black && validMoves(Colour.Black).size() == 0){
+            mrXWon = false;
+            return true;
+        }
+        //If they catch mrX
         for (PlayerData p : playersInGame) {
-            if (p.getColour() != Colour.Black && p.getLocation() == mrX.getLocation()) {
+            if (p != mrX && p.getLocation() == mrX.getLocation()) {
+                mrXWon = false;
                 return true;
             }
         }
-            //Problem because currentPlayer is notified after we check isGameOver.
-            //Suggestion: maybe make a previousPlayer function?
-        if (currentPlayer == Colour.Black && listOfValidMoves.size() == 0) {
+
+        //mrx Wins!
+        //22 round are finished
+        if (currentRound == getRounds().size() - 1 && currentPlayer == Colour.Black) {
+            mrXWon = true;
             return true;
         }
-        //mrx Wins!
-        if (currentRound == 23) {
+        //detectives out of tickets
+        boolean flag = false;
+        // Ticket[] tickets = new Ticket[] {
+        //     Ticket.Bus, Ticket.Taxi, Ticket.Underground
+        // };
+        for (PlayerData p : playersInGame) {
+            Move firstMove = validMoves(p.getColour()).get(0);
+            if (p.getColour() != Colour.Black && firstMove instanceof MoveTicket) {
+                flag = true;
+            }
+        }
+        if (!flag){
+            mrXWon = true;
             return true;
-        }*/
+        }
         return false;
     }
 
