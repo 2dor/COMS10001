@@ -73,10 +73,8 @@ public class RoundsTests {
 
         RoundTestSpectator spectator = new RoundTestSpectator(game);
         game.spectate(spectator);
-
         int roundOne = game.getRound();
         game.turn();
-
         assertEquals("After Mr X plays the first ticket of a double move the round should increment once",
                     roundOne + 1, spectator.round);
     }
@@ -116,5 +114,5 @@ public class RoundsTests {
         assertEquals("After the game has been initialised, and mr x has had a go, the getCurrentPlayer() function should " +
                     "return first detective's colour", Colour.Blue, game.getCurrentPlayer());
     }
-    
+
 }

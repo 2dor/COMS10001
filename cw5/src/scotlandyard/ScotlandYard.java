@@ -153,6 +153,7 @@ public class ScotlandYard implements ScotlandYardView, Receiver {
 		PlayerData player = getPlayerData(colour);
 		player.removeTicket(ticket);
 		player.setLocation(target);
+        //if (currentPlayer != Colour.Black || (rounds.get(currentRound) && ticket != Ticket.Secret))
         //Give ticket to mrX
 		if (colour != Colour.Black) {
 			PlayerData mrX = getPlayerData(Colour.Black);
@@ -160,6 +161,7 @@ public class ScotlandYard implements ScotlandYardView, Receiver {
 		} else {
 			currentRound++;
 		}
+        notifySpectators(move);
     }
 
     /**
@@ -168,8 +170,11 @@ public class ScotlandYard implements ScotlandYardView, Receiver {
      * @param move the MoveDouble to play.
      */
     protected void play(MoveDouble move) {
+        notifySpectators(move);
 		play(move.move1);
 		play(move.move2);
+        PlayerData mrX = getPlayerData(move.colour);
+        mrX.removeTicket(Ticket.Double);
     }
 
     /**
@@ -178,7 +183,7 @@ public class ScotlandYard implements ScotlandYardView, Receiver {
      * @param move the MovePass to play.
      */
     protected void play(MovePass move) {
-        // DONE;
+        notifySpectators(move);
     }
 
     /**
@@ -297,11 +302,37 @@ public class ScotlandYard implements ScotlandYardView, Receiver {
      *
      * @param move currently made move.
      */
-    private void notifySpectators(Move move) {
+    private void notifySpectators(MoveTicket move) {
+        MoveTicket newMove = MoveTicket.instance(currentPlayer, move.ticket, getPlayerLocation(currentPlayer));
+        for (Spectator s : spectatorsInGame) {
+            s.notify(newMove);
+        }
+    }
+
+    private void notifySpectators(MoveDouble move) {
         for (Spectator s : spectatorsInGame) {
             s.notify(move);
         }
     }
+
+    private void notifySpectators(MovePass move) {
+        for (Spectator s : spectatorsInGame) {
+            s.notify(move);
+        }
+    }
+    // TODO: ASK WHAT THE FUCK IS WRONG WITH THIS?!!!11!!? A?
+    // private void notifySpectators(Move move) {
+    //     if (move instanceof MoveTicket) {
+    //         MoveTicket actualMove = MoveTicket.instance(currentPlayer, move.ticket, getPlayerLocation(currentPlayer));
+    //     } else if (move instanceof MoveDouble) {
+    //         MoveDouble actualMove = (MoveDouble) move;
+    //     } else {
+    //         MovePass actualMove = (MovePass) move;
+    //     }
+    //     for (Spectator s : spectatorsInGame) {
+    //         s.notify(actualMove);
+    //     }
+    // }
 
     /**
      * Allows players to join the game with a given starting state. When the
