@@ -16,6 +16,7 @@ public class ScotlandYard implements ScotlandYardView, Receiver {
     protected List<Boolean> rounds;
     protected Integer numberOfDetectives;
     protected List<PlayerData> playersInGame;
+    private List<Spectator> spectatorsInGame;
     private Integer mrXLastLocation;
     private Integer currentRound;
     private Colour currentPlayer;
@@ -37,6 +38,7 @@ public class ScotlandYard implements ScotlandYardView, Receiver {
         this.rounds = rounds;
         this.numberOfDetectives = numberOfDetectives;
         this.playersInGame = new ArrayList<PlayerData>();
+        this.spectatorsInGame = new ArrayList<Spectator>();
         this.currentRound = 0;
         this.mrXLastLocation = 0;
         this.currentPlayer = Colour.Black;
@@ -122,7 +124,12 @@ public class ScotlandYard implements ScotlandYardView, Receiver {
         else if (move instanceof MovePass) play((MovePass) move);
     }
 
-	// Given a colour this function returns player data.
+    /**
+     * Given a player's colour, returns player data.
+     *
+     * @param colour the colour of the player.
+     * @return player's data with corresponding colour.
+     */
 	private PlayerData getPlayerData(Colour colour){
 		PlayerData player = playersInGame.get(0);
 		for (PlayerData p : playersInGame) {
@@ -143,17 +150,18 @@ public class ScotlandYard implements ScotlandYardView, Receiver {
         Colour colour = move.colour;
 		Ticket ticket = move.ticket;
 		int target = move.target;
-		if (getCurrentPlayer() == colour) {
-			PlayerData player = getPlayerData(colour);
-			player.removeTicket(ticket);
-			player.setLocation(target);
-			if (colour != Colour.Black) {
-				PlayerData mrX = getPlayerData(Colour.Black);
-				mrX.addTicket(ticket);
-			} else {
-				currentRound++;
-			}
+		PlayerData player = getPlayerData(colour);
+		player.removeTicket(ticket);
+		player.setLocation(target);
+        //if (currentPlayer != Colour.Black || (rounds.get(currentRound) && ticket != Ticket.Secret))
+        //Give ticket to mrX
+		if (colour != Colour.Black) {
+			PlayerData mrX = getPlayerData(Colour.Black);
+			mrX.addTicket(ticket);
+		} else {
+			currentRound++;
 		}
+        notifySpectators(move);
     }
 
     /**
@@ -162,10 +170,11 @@ public class ScotlandYard implements ScotlandYardView, Receiver {
      * @param move the MoveDouble to play.
      */
     protected void play(MoveDouble move) {
-        MoveTicket move1 = move.move1;
-		MoveTicket move2 = move.move2;
-		play(move1);
-		play(move2);
+        notifySpectators(move);
+		play(move.move1);
+		play(move.move2);
+        PlayerData mrX = getPlayerData(move.colour);
+        mrX.removeTicket(Ticket.Double);
     }
 
     /**
@@ -174,10 +183,7 @@ public class ScotlandYard implements ScotlandYardView, Receiver {
      * @param move the MovePass to play.
      */
     protected void play(MovePass move) {
-		Colour playerColour = move.colour;
-		if (playerColour == Colour.Black) {
-			currentRound++;
-		}
+        notifySpectators(move);
     }
 
     /**
@@ -197,77 +203,86 @@ public class ScotlandYard implements ScotlandYardView, Receiver {
 
     }
 
+    /**
+     * Returns true if target node is occupied
+     *
+     * @param edge The edge we are using to test if the target node is occupied.
+     * @return true if target occupied, false otherwise.
+     */
+    private boolean isOccupied(Edge<Integer, Transport> edge) {
+        for (PlayerData p : playersInGame) {
+            if (p.getColour() != Colour.Black && p.getLocation() == (Integer) edge.getTarget().getIndex()) {
+                return true;
+            }
+        }
+        return false;
+    }
 
+    /**
+     * Adds single valid moves to listOfValidMoves, and calls mrXDoubleMoves()
+     *
+     * @param playerAux current player's data.
+     * @param listOfValidMoves list of generated valid moves for current player.
+     */
     private void generateMoves(PlayerData playerAux, List<Move> listOfValidMoves) {
         boolean flagUnreachable = false;
+        Ticket currentTicket;
         Node<Integer> nodeLocation = graph.getNode(playerAux.getLocation());
         for (Edge<Integer, Transport> e : graph.getEdgesFrom(nodeLocation)) {
-            flagUnreachable = false;
-            for (PlayerData p : playersInGame) {
-                // Occupied node (if the player is not mrX and one of
-                // the detective is on the destination node then mark it as unreachable)
-                if (p.getColour() != Colour.Black && p.getLocation() == (Integer) e.getTarget().getIndex()) {
-                    flagUnreachable = true;
-                    break;
-                }
-            }
-            // No tickets (if a player has no tickers to get to the destination node
-            // then mark it as unreachable)
-            if (playerAux.getTickets().get(Ticket.fromTransport(e.getData())) == 0){
+            currentTicket = Ticket.fromTransport(e.getData());
+            flagUnreachable = isOccupied(e);
+            if (!playerAux.hasTickets(currentTicket)) {
                 flagUnreachable = true;
             }
-
-            if (flagUnreachable == false) {
-                MoveTicket ticket1 = MoveTicket.instance(playerAux.getColour(), Ticket.fromTransport(e.getData()), e.getTarget().getIndex());
-                listOfValidMoves.add(ticket1);
-                if (playerAux.getColour() == Colour.Black && playerAux.getTickets().get(Ticket.Double) > 0) {
-						playerAux.removeTicket(Ticket.fromTransport(e.getData()));
-                        mrXDoubleMoves(playerAux, e, ticket1, listOfValidMoves);
-						playerAux.addTicket(Ticket.fromTransport(e.getData()));
-                }
-            }
-
-            if (flagUnreachable == false && playerAux.getColour() == Colour.Black && playerAux.getTickets().get(Ticket.Secret) != 0) {
-                MoveTicket ticket1 = MoveTicket.instance(playerAux.getColour(), Ticket.Secret, e.getTarget().getIndex());
-                listOfValidMoves.add(ticket1);
-                if (playerAux.getTickets().get(Ticket.Double) > 0) {
-					playerAux.removeTicket(Ticket.fromTransport(e.getData()));
-                    mrXDoubleMoves(playerAux, e, ticket1, listOfValidMoves);
-					playerAux.addTicket(Ticket.fromTransport(e.getData()));
+            if (!flagUnreachable) {
+                MoveTicket ticketNormal = MoveTicket.instance(playerAux.getColour(), currentTicket, e.getTarget().getIndex());
+                listOfValidMoves.add(ticketNormal);
+                if (playerAux.getColour() == Colour.Black) {
+                    if (playerAux.hasTickets(Ticket.Secret)) {
+                        MoveTicket ticketSecret = MoveTicket.instance(playerAux.getColour(), Ticket.Secret, e.getTarget().getIndex());
+                        listOfValidMoves.add(ticketSecret);
+                        if (playerAux.hasTickets(Ticket.Double)) {
+                            playerAux.removeTicket(currentTicket);
+                            mrXDoubleMoves(playerAux, e, ticketSecret, listOfValidMoves);
+        					playerAux.addTicket(currentTicket);
+                        }
+                    }
+                    if (playerAux.hasTickets(Ticket.Double)) {
+                        playerAux.removeTicket(currentTicket);
+                        mrXDoubleMoves(playerAux, e, ticketNormal, listOfValidMoves);
+                        playerAux.addTicket(currentTicket);
+                    }
                 }
             }
         }
     }
 
-    private void mrXDoubleMoves(PlayerData playerAux, Edge previousEdge, MoveTicket ticket1, List<Move> listOfValidMoves) {
+    /**
+     * Adds double valid moves to listOfValidMoves in the case of mrX
+     *
+     * @param playerAux current player's data.
+     * @param previousEdge the edge used in the previous move
+     * @param ticketPrevious previous ticket
+     * @param listOfValidMoves list of generated valid moves for current player.
+     */
+    private void mrXDoubleMoves(PlayerData playerAux, Edge previousEdge, MoveTicket ticketPrevious, List<Move> listOfValidMoves) {
         boolean flagUnreachable = false;
+        Ticket currentTicket;
         Integer middle = (Integer) previousEdge.getTarget().getIndex();
         Node<Integer> nodeLocation = graph.getNode(middle);
         for (Edge<Integer, Transport> e : graph.getEdgesFrom(nodeLocation)) {
-            flagUnreachable = false;
-            for (PlayerData p : playersInGame) {
-                // Occupied node (if the player is not mrX and one of
-                // the detective is on the destination node then mark it as unreachable)
-                if (p.getColour() != Colour.Black && p.getLocation() == (Integer) e.getTarget().getIndex()) {
-                    flagUnreachable = true;
-                    break;
-                }
-            }
-            // No tickets (if a player has no tickers to get to the destination node
-            // then mark it as unreachable)
-            if (playerAux.getTickets().get(Ticket.fromTransport(e.getData())) == 0){
+            currentTicket = Ticket.fromTransport(e.getData());
+            flagUnreachable = isOccupied(e);
+            if (!playerAux.hasTickets(currentTicket)){
                 flagUnreachable = true;
             }
-
-            // Previous ticket + previous with normal ticket
-            if (flagUnreachable == false) {
-                MoveTicket ticket2 = MoveTicket.instance(playerAux.getColour(), Ticket.fromTransport(e.getData()), e.getTarget().getIndex());
-                listOfValidMoves.add(MoveDouble.instance(playerAux.getColour(), ticket1, ticket2));
-            }
-            // Previous ticket + ticket with secret move
-            if (flagUnreachable == false && playerAux.getColour() == Colour.Black && playerAux.getTickets().get(Ticket.Secret) != 0) {
-                MoveTicket ticket2 = MoveTicket.instance(playerAux.getColour(), Ticket.Secret, e.getTarget().getIndex());
-                listOfValidMoves.add(MoveDouble.instance(playerAux.getColour(), ticket1, ticket2));
+            if (!flagUnreachable) {
+                MoveTicket ticketNormal = MoveTicket.instance(playerAux.getColour(), currentTicket, e.getTarget().getIndex());
+                listOfValidMoves.add(MoveDouble.instance(playerAux.getColour(), ticketPrevious, ticketNormal));
+                if (playerAux.hasTickets(Ticket.Secret)) {
+                    MoveTicket ticketSecret = MoveTicket.instance(playerAux.getColour(), Ticket.Secret, e.getTarget().getIndex());
+                    listOfValidMoves.add(MoveDouble.instance(playerAux.getColour(), ticketPrevious, ticketSecret));
+                }
             }
         }
     }
@@ -279,8 +294,45 @@ public class ScotlandYard implements ScotlandYardView, Receiver {
      * @param spectator the spectator that wants to be notified when a move is made.
      */
     public void spectate(Spectator spectator) {
-        //TODO:
+        spectatorsInGame.add(spectator);
     }
+
+    /**
+     * Notifies all spectators about the move
+     *
+     * @param move currently made move.
+     */
+    private void notifySpectators(MoveTicket move) {
+        MoveTicket newMove = MoveTicket.instance(currentPlayer, move.ticket, getPlayerLocation(currentPlayer));
+        for (Spectator s : spectatorsInGame) {
+            s.notify(newMove);
+        }
+    }
+
+    private void notifySpectators(MoveDouble move) {
+        for (Spectator s : spectatorsInGame) {
+            s.notify(move);
+        }
+    }
+
+    private void notifySpectators(MovePass move) {
+        for (Spectator s : spectatorsInGame) {
+            s.notify(move);
+        }
+    }
+    // TODO: ASK WHAT THE FUCK IS WRONG WITH THIS?!!!11!!? A?
+    // private void notifySpectators(Move move) {
+    //     if (move instanceof MoveTicket) {
+    //         MoveTicket actualMove = MoveTicket.instance(currentPlayer, move.ticket, getPlayerLocation(currentPlayer));
+    //     } else if (move instanceof MoveDouble) {
+    //         MoveDouble actualMove = (MoveDouble) move;
+    //     } else {
+    //         MovePass actualMove = (MovePass) move;
+    //     }
+    //     for (Spectator s : spectatorsInGame) {
+    //         s.notify(actualMove);
+    //     }
+    // }
 
     /**
      * Allows players to join the game with a given starting state. When the
@@ -338,8 +390,9 @@ public class ScotlandYard implements ScotlandYardView, Receiver {
      */
     public int getPlayerLocation(Colour colour) {
 		int mrXLastLocation = 0;
+        int playerLocation = 0;
 		PlayerData player = getPlayerData(colour);
-		int playerLocation = player.getLocation();
+		playerLocation = player.getLocation();
         // Mr X's last available position
         if (colour == Colour.Black) {
             if (rounds.get(currentRound) == false) {
@@ -371,8 +424,23 @@ public class ScotlandYard implements ScotlandYardView, Receiver {
      *
      * @return true when the game is over, false otherwise.
      */
-    public boolean isGameOver() {
-        //TODO:
+    public boolean isGameOver() {/*
+        PlayerData mrX = getPlayerData(Colour.Black);
+        //Detectives Win!
+        for (PlayerData p : playersInGame) {
+            if (p.getColour() != Colour.Black && p.getLocation() == mrX.getLocation()) {
+                return true;
+            }
+        }
+            //Problem because currentPlayer is notified after we check isGameOver.
+            //Suggestion: maybe make a previousPlayer function?
+        if (currentPlayer == Colour.Black && listOfValidMoves.size() == 0) {
+            return true;
+        }
+        //mrx Wins!
+        if (currentRound == 23) {
+            return true;
+        }*/
         return false;
     }
 

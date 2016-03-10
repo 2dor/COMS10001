@@ -111,6 +111,12 @@ public class PlayerData {
         tickets.put(ticket, ticketCount);
     }
 
+    public boolean hasTickets(Ticket ticket) {
+        if (tickets.get(ticket) == 0)
+            return false;
+        return true;
+    }
+
     public boolean hasTickets(Move move) {
         if (move instanceof MoveTicket) return hasTickets((MoveTicket) move);
         else if (move instanceof MoveDouble) return hasTickets((MoveDouble) move);

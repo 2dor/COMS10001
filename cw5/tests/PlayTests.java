@@ -227,15 +227,16 @@ public class PlayTests {
                     "location", secondLocation.target, game.getPlayerLocation(Colour.Black));
     }
 
+    @Test
     public void testDoubleMoveUsesTheCorrectTickets() throws Exception {
         ScotlandYard game = TestHelper.getStoppedGame(1, "test_resources/small_map.txt");
         DoubleMoveTicketPlayer testPlayer = new DoubleMoveTicketPlayer();
-        TestHelper.addMrxToGame(game, testPlayer, 2);
+        TestHelper.addMrxToGame(game, testPlayer, 4);
         TestHelper.addDetectiveToGame(game, Colour.Blue, 5);
 
         Map<Ticket,Integer> initialTickets = new HashMap<Ticket, Integer>();
         for (Ticket ticket : TestHelper.tickets) {
-            initialTickets.put(ticket, game.getPlayerTickets(Colour.Blue, ticket));
+            initialTickets.put(ticket, game.getPlayerTickets(Colour.Black, ticket));
         }
 
         game.turn();
@@ -243,6 +244,12 @@ public class PlayTests {
         MoveTicket firstLocation = testPlayer.chosen.move1;
         MoveTicket secondLocation = testPlayer.chosen.move2;
 
+        if (firstLocation.ticket == secondLocation.ticket) {
+        assertEquals("After playing a double move, the correct tickets should have been removed " +
+                    "from the player", initialTickets.get(firstLocation.ticket) - 2,
+                    game.getPlayerTickets(Colour.Black, firstLocation.ticket));
+        }
+        else {
         assertEquals("After playing a double move, the correct tickets should have been removed " +
                     "from the player", initialTickets.get(firstLocation.ticket) - 1,
                     game.getPlayerTickets(Colour.Black, firstLocation.ticket));
@@ -250,7 +257,7 @@ public class PlayTests {
         assertEquals("After playing a double move, the correct tickets should have been removed " +
                     "from the player", initialTickets.get(secondLocation.ticket) - 1,
                     game.getPlayerTickets(Colour.Black, secondLocation.ticket));
-
+        }
         assertEquals("After playing a double move, the correct tickets should have been removed " +
                     "from the player", initialTickets.get(Ticket.Double) - 1,
                     game.getPlayerTickets(Colour.Black, Ticket.Double));
