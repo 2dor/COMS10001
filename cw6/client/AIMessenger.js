@@ -23,7 +23,7 @@ AIMessenger.prototype.handleMessage = function (message) {
       this.interpretJoin(decodedMessage);
       break;
     case "MOVE":
-      this.interpretGameOver(decodedMessage);
+      this.interpretMove(decodedMessage);
       break;
     default:
       break;
