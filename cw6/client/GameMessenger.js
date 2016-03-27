@@ -65,6 +65,15 @@ GameMessenger.prototype.interpretRegistered = function (messageRegistered) {
  */
 GameMessenger.prototype.interpretReady = function (messageReady) {
   //TODO:
+  var locations = messageReady['locations'];
+  guiConnector.setPlayerLocations(locations);
+  var tickets = messageReady['tickets'];
+  guiConnector.setPlayerTickets(tickets);
+  var rounds = messageReady['rounds'];
+  var currentRound = messageReady['current_round'];
+  guiConnector.setTicketView(rounds,currentRound);
+  //wtf man?
+  guiConnector.setSetUpViewVisible(false);
 };
 
 /**
