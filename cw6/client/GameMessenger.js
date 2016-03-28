@@ -53,9 +53,9 @@ GameMessenger.prototype.handleMessage = function (message) {
  * @param messageRegistered the REGISTERED message.
  */
 GameMessenger.prototype.interpretRegistered = function (messageRegistered) {
-  gameId = messageRegistered['game_id'];
-  guiConnector.showGameIdPane(gameId);
-  this.storedMessage = messageRegistered;
+	gameId = messageRegistered['game_id'];
+	guiConnector.showGameIdPane(gameId);
+	this.storedMessage = messageRegistered;
 };
 
 /**
@@ -64,16 +64,21 @@ GameMessenger.prototype.interpretRegistered = function (messageRegistered) {
  * @param messageReady the READY message.
  */
 GameMessenger.prototype.interpretReady = function (messageReady) {
-  //TODO:
-  var locations = messageReady['locations'];
-  guiConnector.setPlayerLocations(locations);
-  var tickets = messageReady['tickets'];
-  guiConnector.setPlayerTickets(tickets);
-  var rounds = messageReady['rounds'];
-  var currentRound = messageReady['current_round'];
-  guiConnector.setTicketView(rounds,currentRound);
-  //wtf man?
-  guiConnector.setSetUpViewVisible(false);
+	var locations = messageReady['locations'];
+	guiConnector.setPlayerLocations(locations);
+	var tickets = messageReady['tickets'];
+	guiConnector.setPlayerTickets(tickets);
+	var rounds = messageReady['rounds'];
+	var currentRound = messageReady['current_round'];
+	guiConnector.setTicketView(rounds,currentRound);
+	var colours = messageReady.colours;
+	for (var i = 0; i < colours.length; i++) {
+		if (AIPlayers.length > 0 && aiMessenger.isConnected() && AIPlayers.indexOf(colours[i]) !== -1){
+			aiMessenger.sendMessage(messageReady);
+		}
+	}
+	//wtf man?
+	guiConnector.setSetUpViewVisible(false);
 };
 
 /**
@@ -82,8 +87,8 @@ GameMessenger.prototype.interpretReady = function (messageReady) {
  * @param messagePendingGame the PENDING_GAME message.
  */
 GameMessenger.prototype.interpretPendingGame = function (messagePendingGame) {
-  var missingPlayers = messagePendingGame['opponents'];
-  guiConnector.showStringInSetUpView("Waiting for: " + missingPlayers.toString());
+	var missingPlayers = messagePendingGame['opponents'];
+	guiConnector.showStringInSetUpView("Waiting for: " + missingPlayers.toString());
 };
 
 /**
@@ -115,7 +120,7 @@ GameMessenger.prototype.interpretNotify = function (messageNotify) {
  * @param messageGameOver the GAME_OVER message.
  */
 GameMessenger.prototype.interpretGameOver = function (messageGameOver) {
-  guiConnector.setGameOver(messageGameOver);
+	guiConnector.setGameOver(messageGameOver);
 };
 
 /**
@@ -124,7 +129,7 @@ GameMessenger.prototype.interpretGameOver = function (messageGameOver) {
  * @param messageGames the GAMES message.
  */
 GameMessenger.prototype.interpretGames = function (messageGames) {
-  guiConnector.updateGamesList(messageGames['games']);
+	guiConnector.updateGamesList(messageGames['games']);
 };
 
 /**
@@ -135,6 +140,12 @@ GameMessenger.prototype.interpretGames = function (messageGames) {
  */
 GameMessenger.prototype.interpretConnection = function (messageConnection) {
   //TODO:
+  var url = "ws://" + messageConnection.host + ":" + messageConnection.port;
+  this.changeConnection(url);
+  // where should we get the type of the message from?
+  var message = { game_id: guiConnector.getSelectedGame(),
+  				  type: "SPECTATE"};
+  this.sendMessage(message);
 };
 
 /**
@@ -146,7 +157,14 @@ GameMessenger.prototype.interpretConnection = function (messageConnection) {
 GameMessenger.prototype.interpretNotifyTurn = function (messageNotifyTurn) {
 	//passes the tests with second parameter true, false or even without it. Wierd..
 	//btw second parameter is a boolean AiMove.
- 	guiConnector.startTurn(messageNotifyTurn);
+	var colour = messageNotifyTurn.validMoves;
+	console.log("colour is: " + colour + "\n");
+	//.move.colour;
+	if (AIPlayers.length > 0 && aiMessenger.isConnected() && AIPlayers.indexOf(colour) !== -1){
+		guiConnector.startTurn(messageNotifyTurn, true);
+	} else {
+	 	guiConnector.startTurn(messageNotifyTurn, false);
+	}
 };
 
 /**
