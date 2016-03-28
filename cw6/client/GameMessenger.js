@@ -92,7 +92,20 @@ GameMessenger.prototype.interpretPendingGame = function (messagePendingGame) {
  * @param messageNotify the NOTIFY message.
  */
 GameMessenger.prototype.interpretNotify = function (messageNotify) {
-  //TODO:
+	if (messageNotify.move_type != "MovePass") {
+		var player = messageNotify.move.colour;
+		var location = messageNotify.move.target;
+		var ticket = messageNotify.move.ticket;
+		if (messageNotify.move_type == "MoveDouble") {
+			guiConnector.removeTicket(player, "Double");
+		} else {
+			guiConnector.removeTicket(player, ticket);
+			guiConnector.animatePlayer(player, location);
+		}
+		if (player == "Black") {
+			guiConnector.updateTicketView(ticket, location);
+		}
+	}
 };
 
 /**
@@ -102,7 +115,7 @@ GameMessenger.prototype.interpretNotify = function (messageNotify) {
  * @param messageGameOver the GAME_OVER message.
  */
 GameMessenger.prototype.interpretGameOver = function (messageGameOver) {
-  //TODO:
+  guiConnector.setGameOver(messageGameOver);
 };
 
 /**
@@ -131,7 +144,9 @@ GameMessenger.prototype.interpretConnection = function (messageConnection) {
  * @param messageNotifyTurn the NOTIFY_TURN message.
  */
 GameMessenger.prototype.interpretNotifyTurn = function (messageNotifyTurn) {
-  //TODO:
+	//passes the tests with second parameter true, false or even without it. Wierd..
+	//btw second parameter is a boolean AiMove.
+ 	guiConnector.startTurn(messageNotifyTurn);
 };
 
 /**
