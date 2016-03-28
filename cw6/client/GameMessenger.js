@@ -101,6 +101,11 @@ GameMessenger.prototype.interpretNotify = function (messageNotify) {
 		var player = messageNotify.move.colour;
 		var location = messageNotify.move.target;
 		var ticket = messageNotify.move.ticket;
+        // notify the ai (if it's connected and there is at least one AI player in the game)
+        // regardless of the player who moved
+        if (aiMessenger.isConnected() && AIPlayers.length > 0) {
+            aiMessenger.sendMessage(messageNotify);
+        }
 		if (messageNotify.move_type == "MoveDouble") {
 			guiConnector.removeTicket(player, "Double");
 		} else {
@@ -121,6 +126,8 @@ GameMessenger.prototype.interpretNotify = function (messageNotify) {
  */
 GameMessenger.prototype.interpretGameOver = function (messageGameOver) {
 	guiConnector.setGameOver(messageGameOver);
+    if (AIPlayers.length > 0 && aiMessenger.isConnected())
+        aiMessenger.sendMessage(messageGameOver);
 };
 
 /**
@@ -139,7 +146,6 @@ GameMessenger.prototype.interpretGames = function (messageGames) {
  * @param messageConnection the CONNECTION message.
  */
 GameMessenger.prototype.interpretConnection = function (messageConnection) {
-  //TODO:
   var url = "ws://" + messageConnection.host + ":" + messageConnection.port;
   this.changeConnection(url);
   // where should we get the type of the message from?
@@ -155,13 +161,10 @@ GameMessenger.prototype.interpretConnection = function (messageConnection) {
  * @param messageNotifyTurn the NOTIFY_TURN message.
  */
 GameMessenger.prototype.interpretNotifyTurn = function (messageNotifyTurn) {
-	//passes the tests with second parameter true, false or even without it. Wierd..
-	//btw second parameter is a boolean AiMove.
-	var colour = messageNotifyTurn.validMoves;
-	console.log("colour is: " + colour + "\n");
-	//.move.colour;
-	if (AIPlayers.length > 0 && aiMessenger.isConnected() && AIPlayers.indexOf(colour) !== -1){
+	var colour = messageNotifyTurn.valid_moves[0].move.colour;
+	if (AIPlayers.length > 0 && aiMessenger.isConnected() && AIPlayers.indexOf(colour) !== -1) {
 		guiConnector.startTurn(messageNotifyTurn, true);
+        aiMessenger.sendMessage(messageNotifyTurn);
 	} else {
 	 	guiConnector.startTurn(messageNotifyTurn, false);
 	}
