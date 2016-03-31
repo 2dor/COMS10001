@@ -17,7 +17,7 @@ public class RandomPlayerFactory implements PlayerFactory {
     @Override
     public Player getPlayer(Colour colour, ScotlandYardView view, String mapFilename) {
         //TODO: Update this with your AI implementation.
-        return new RandomPlayer(view, mapFilename);
+        return new XPlayer(view, mapFilename);
     }
 
     @Override

@@ -1,4 +1,4 @@
-package swing.algorithms;
+package player;
 
 import scotlandyard.*;
 import graph.*;
