@@ -45,7 +45,7 @@ public class Dijkstra {
      * the player holds.
      * @return the optimal route from start to destination.
      */
-    public List<Integer> getRoute(int start, int destination, Map<Transport, Integer> tickets) {
+    public List<Integer> getRoute(int start, int destination, Map<Transport, Integer> tickets, Colour player) {
 
         List<Node<Integer>> nodes = graph.getNodes();
         //Initialisation
@@ -76,7 +76,7 @@ public class Dijkstra {
             if (currentNode.getIndex().equals(destination)) break;
             unvisitedNodes.remove(currentNode);
 
-            step(graph, distances, unvisitedNodes, currentNode, previousNodes, tickets);
+            step(graph, distances, unvisitedNodes, currentNode, previousNodes, tickets, player);
         }
 
         //Move backwards finding the shortest route
@@ -103,16 +103,24 @@ public class Dijkstra {
                       Map<Node<Integer>, Double> unvisitedNodes,
                       Node<Integer> currentNode,
                       Map<Node<Integer>, Node<Integer>> previousNodes,
-                      Map<Transport, Integer> tickets) {
+                      Map<Transport, Integer> tickets,
+					  Colour player) {
         List<Edge<Integer, Transport>> edges = graph.getEdgesFrom(currentNode);
         Double currentDistance = distances.get(currentNode);
+		// System.out.println("Current node: "+currentNode.getIndex());
         for (Edge<Integer, Transport> e : edges) {
             //For all neighbours
             Node<Integer> neighbour = e.getTarget();
             if (unvisitedNodes.get(neighbour) != null) {
                 Transport route = e.getData();
+				if (player != Colour.Black && route == Transport.Boat) continue; // Detecties CUNT use boats
+				//System.out.println(e.getData());
                 Integer numTickets = tickets.get(route);
                 //Update distances
+				//System.out.println(neighbour.getIndex());
+				////System.out.println(pageRank.getPageRank(neighbour.getIndex()));
+				//System.out.println(numTickets);
+				//System.out.println(currentDistance);
                 Double tentativeDistance = currentDistance + (1 / (numTickets * pageRank.getPageRank(neighbour.getIndex())));
                 if (tentativeDistance < distances.get(neighbour)) {
                     distances.put(neighbour, tentativeDistance);

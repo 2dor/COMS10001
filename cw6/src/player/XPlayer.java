@@ -64,11 +64,18 @@ public class XPlayer implements Player {
 		List<Integer> route = new ArrayList<Integer>();
 		int score = 6660000;
 		for (Colour p : players){
+			if (p == Colour.Black) continue;
 			Map<Transport, Integer> tickets = new HashMap<Transport, Integer>();
 			tickets.put(Transport.Bus, view.getPlayerTickets(p, Ticket.fromTransport(Transport.Bus)));
 			tickets.put(Transport.Taxi, view.getPlayerTickets(p, Ticket.fromTransport(Transport.Taxi)));
 			tickets.put(Transport.Underground, view.getPlayerTickets(p, Ticket.fromTransport(Transport.Underground)));
-			route = dijkstra.getRoute(location, view.getPlayerLocation(p), tickets);
+			// System.out.println("Detective Location: " + view.getPlayerLocation(p));
+			// System.out.println("Destination: " + location);
+			// System.out.println("Tickets Bus: " + tickets.get(Transport.Bus));
+			// System.out.println("Tickets Taxi: " + tickets.get(Transport.Taxi));
+			// System.out.println("Tickets UG: " + tickets.get(Transport.Underground));
+			// System.out.println("");
+			route = dijkstra.getRoute(view.getPlayerLocation(p), location, tickets, p);
 			score = Math.min(score, route.size() * 10);
 		}
 		return score;
