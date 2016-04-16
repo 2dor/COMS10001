@@ -17,6 +17,7 @@ public class AIPlayerFactory implements PlayerFactory {
     @Override
     public Player getPlayer(Colour colour, ScotlandYardView view, String mapFilename) {
         //TODO: Update this with your AI implementation.
+        System.out.println("Creating " + colour + " random player.\n");
         return new AIPlayer(view, mapFilename, colour);
     }
 

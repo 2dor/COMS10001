@@ -6,7 +6,7 @@ import graph.*;
 import java.io.IOException;
 import java.util.*;
 
-public class Simulator extends ScotlandYardGraphReader {
+public class Simulator extends ScotlandYardGraph {
     private ScotlandYardView view;
     private ScotlandYardGraph graph;
     private String graphFilename;
@@ -17,17 +17,18 @@ public class Simulator extends ScotlandYardGraphReader {
     private int mrXLocation;
 
     public Simulator(ScotlandYardView view, String graphFilename) {
-        this.view = view;
+        ScotlandYardGraphReader graphRead = new ScotlandYardGraphReader();
         try {
-            this.graph = readGraph(graphFilename);
+            this.graph = graphRead.readGraph(graphFilename);
         } catch(IOException e) {
             //TODO maybe: handle exception
         }
+        this.view = view;
         this.graphFilename = graphFilename;
         this.players = view.getPlayers();
 		this.rounds = view.getRounds();
 		this.currentRound = view.getRound();
-        this.mrXLocation = view.getPlayerLocation(Colour.Black);
+        this.mrXLocation = 0;
         this.mrXPossibleLocations = new HashSet<Integer>();
     }
 
@@ -46,7 +47,7 @@ public class Simulator extends ScotlandYardGraphReader {
 		int bestScore = -10;
 		int destinationScore = 0;
 		Move bestMove = moves.get(0);
-
+        int currentNodeRank = getNodeRank(location);
 		//List<Transport> allTransports = new ArrayList<Transport>();
 		// 0 Taxi, 1 Bus, 2 Underground
 
@@ -86,39 +87,50 @@ public class Simulator extends ScotlandYardGraphReader {
 			bestTicket = Ticket.Underground;
 		}
         */
-	    for (Move m : moves) {
+	    for (Move currentMove : moves) {
 			MoveTicket move = MoveTicket.instance(Colour.Black, Ticket.Bus, 69);//random init
-			if (m instanceof MoveTicket) {
-				destination = setDestination((MoveTicket) m);
-				move = (MoveTicket) m;
-			}
-			else destination = setDestination((MoveDouble) m);
-			destinationScore = getNodeRank(destination);
-			if (bestScore < destinationScore) {
-				bestScore = destinationScore;
-				bestMove = m;
-			} else if (bestScore == destinationScore) {
-				// if (move.ticket == bestTicket) {
-				// 	bestMove = m;
-				// }
-			}
+			if (currentMove instanceof MoveTicket) {
+				destination = setDestination((MoveTicket) currentMove);
+				move = (MoveTicket) currentMove;
+			} else {
+                destination = setDestination((MoveDouble) currentMove);
+            }
+            if (currentNodeRank > 4) {
+                List<Move> mrXMoves = graph.generateMoves(Colour.Black, location);
+                List<Move> possible = new ArrayList<Move>();
+                for (Move a : mrXMoves) {
+                    destinationScore = getNodeRank(destination);
+                    if (a instanceof MoveTicket) {
+                        MoveTicket m = (MoveTicket) a;
+                        if (m.ticket == Ticket.Taxi && destinationScore < currentNodeRank) {
+                            possible.add(m);
+                        }
+                        //newLocations.add(move.target);
+                        //System.out.println(move.target);
+                    }
+                }
+                if (possible.size() > 0) {
+                    bestMove = possible.get(0);
+                } else {
+                    bestMove = moves.get(0);
+                }
+            } else {
+        		destinationScore = getNodeRank(destination);
+        		if (bestScore < destinationScore) {
+        			bestScore = destinationScore;
+        			bestMove = currentMove;
+        		} else if (bestScore == destinationScore) {
+        			// if (move.ticket == bestTicket) {
+        			// 	bestMove = m;
+        			// }
+        		}
+            }
 		}
 		return bestMove;
 	}
 
-    public void getDetectiveMove(int location, List<Move> moves) {
-        if (rounds.get(currentRound - 1) == true){
-            mrXPossibleLocations.clear();
-            mrXPossibleLocations.add(mrXLocation);
-        } else {
-            for (Integer l : mrXPossibleLocations) {
-                List<Move> mrXMoves = graph.generateMoves(Colour.Black, l);
 
-            }
-        }
-    }
-
-	// get distance to closest detective; from detective to mr X.
+    // get distance to closest detective; from detective to mr X.
 	private int getNodeRank(int location) {
 		Dijkstra dijkstra = new Dijkstra(graphFilename);
 		List<Integer> route = new ArrayList<Integer>();
@@ -136,10 +148,70 @@ public class Simulator extends ScotlandYardGraphReader {
 			// System.out.println("Tickets UG: " + tickets.get(Transport.Underground));
 			// System.out.println("");
 			route = dijkstra.getRoute(view.getPlayerLocation(p), location, tickets, p);
-			score = Math.min(score, route.size() * 10);
+			score = Math.min(score, route.size());
 		}
 		return score;
 	}
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+    /*
+    public Move getDetectiveMove(int location, List<Move> moves) {
+        currentRound = view.getRound();//update the round every time
+        if (currentRound > 2) {
+            System.out.println("\nMr X location revealed and updated.");
+            mrXLocation = view.getPlayerLocation(Colour.Black);
+        }
+        if (rounds.get(currentRound) == true) {
+            mrXPossibleLocations.clear();
+            mrXPossibleLocations.add(mrXLocation);
+            System.out.println("\nPOSSIBLE LOCATIONS RESTARTED");
+        } else {
+            System.out.println("\nTrying to expand Mr X list of locations.");
+            Set<Integer> newLocations = new HashSet<Integer>();
+            for (Integer loc : mrXPossibleLocations) {
+                System.out.println("\nNODES FROM:" + loc);
+                List<Move> mrXMoves = graph.generateMoves(Colour.Black, loc);
+                for (Move a : mrXMoves) {
+                    if (a instanceof MoveTicket) {
+                        MoveTicket move = (MoveTicket) a;
+                        newLocations.add(move.target);
+                        System.out.println(move.target);
+                    }
+                    else if (a instanceof MoveDouble) {
+                        MoveDouble move = (MoveDouble) a;
+                        newLocations.add(move.move2.target);
+                        System.out.println(move.move2.target);
+                    }
+                }
+            }
+            for (Integer i : newLocations) {
+                mrXPossibleLocations.add(i);
+            }
+            System.out.println("\nPRINTING POSSIBLE LOCATIONS:");
+            for (Integer a : mrXPossibleLocations) {
+                System.out.println(a);
+            }
+        }
+        return moves.get(0);
+    }
+    */
 }

@@ -3,6 +3,7 @@ package player;
 import scotlandyard.*;
 
 import java.util.*;
+import java.io.IOException;
 
 /**
  * The RandomPlayer class is an example of a very simple AI that
@@ -29,6 +30,12 @@ public class AIPlayer implements Player {
 		this.currentRound = view.getRound();
 		this.graphFilename = graphFilename;
         simulator = new Simulator(view, graphFilename);
+        //simulator = new ScotlandYardGraph();
+        // ScotlandYardGraphReader graphRead = new ScotlandYardGraphReader();
+        // try {
+        //     simulator = (Simulator) graphRead.readGraph(graphFilename);
+        // } catch(IOException e) {}
+        // simulator.setSimulator(view, graphFilename);
         this.player = player;
     }
 
@@ -58,11 +65,18 @@ public class AIPlayer implements Player {
 		// 		bestMove = m;
 		// 	}
 		// }
-        Collections.shuffle(moves);
-        Move bestMove = moves.get(0);
-        //Move bestMove = simulator.getMove(location, moves);
+        // Collections.shuffle(moves);
+        // Move bestMove = moves.get(0);
+        Move bestMove = simulator.getMrXMove(location, moves);
         System.out.println("Playing intelligent move" + bestMove);
         receiver.playMove(bestMove, token);
     }
+
+    // @Override
+    // public void notify(Move move) {
+    //     if () {
+    //
+    //     }
+    // }
 
 }
