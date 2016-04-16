@@ -6,15 +6,29 @@ import graph.*;
 import java.io.IOException;
 import java.util.*;
 
-public class Simulator extends ScotlandYardGraph {
+public class Simulator extends ScotlandYardGraphReader {
     private ScotlandYardView view;
+    private ScotlandYardGraph graph;
     private String graphFilename;
+    private Set<Integer> mrXPossibleLocations;
     private List<Colour> players;
+    private List<Boolean> rounds;
+    private int currentRound;
+    private int mrXLocation;
 
     public Simulator(ScotlandYardView view, String graphFilename) {
         this.view = view;
+        try {
+            this.graph = readGraph(graphFilename);
+        } catch(IOException e) {
+            //TODO maybe: handle exception
+        }
         this.graphFilename = graphFilename;
         this.players = view.getPlayers();
+		this.rounds = view.getRounds();
+		this.currentRound = view.getRound();
+        this.mrXLocation = view.getPlayerLocation(Colour.Black);
+        this.mrXPossibleLocations = new HashSet<Integer>();
     }
 
     private int setDestination(MoveTicket move) {
@@ -25,7 +39,7 @@ public class Simulator extends ScotlandYardGraph {
 		return move.move2.target;
 	}
 
-	public Move getMove(int location, List<Move> moves) {
+	public Move getMrXMove(int location, List<Move> moves) {
 		System.out.println("Getting intelligent move");
 		/*for each accesible node in moves compute score and choose best*/
 		int destination = 0;
@@ -91,6 +105,18 @@ public class Simulator extends ScotlandYardGraph {
 		}
 		return bestMove;
 	}
+
+    public void getDetectiveMove(int location, List<Move> moves) {
+        if (rounds.get(currentRound - 1) == true){
+            mrXPossibleLocations.clear();
+            mrXPossibleLocations.add(mrXLocation);
+        } else {
+            for (Integer l : mrXPossibleLocations) {
+                List<Move> mrXMoves = graph.generateMoves(Colour.Black, l);
+
+            }
+        }
+    }
 
 	// get distance to closest detective; from detective to mr X.
 	private int getNodeRank(int location) {

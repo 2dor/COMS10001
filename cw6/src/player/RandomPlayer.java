@@ -23,6 +23,9 @@ public class RandomPlayer implements Player {
         //TODO: Some clever AI here ...
         System.out.println("Getting random move");
         Collections.shuffle(moves);
+        if (moves.size() == 0) {
+            System.out.println("Length of ArrayList moves is zero...\n");
+        }
         System.out.println("Playing random move" + moves.get(0));
         receiver.playMove(moves.get(0), token);
     }

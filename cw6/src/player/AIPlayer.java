@@ -58,8 +58,9 @@ public class AIPlayer implements Player {
 		// 		bestMove = m;
 		// 	}
 		// }
-        //Collections.shuffle(moves);
-        Move bestMove = simulator.getMove(location, moves);
+        Collections.shuffle(moves);
+        Move bestMove = moves.get(0);
+        //Move bestMove = simulator.getMove(location, moves);
         System.out.println("Playing intelligent move" + bestMove);
         receiver.playMove(bestMove, token);
     }

@@ -77,7 +77,7 @@ GameMessenger.prototype.interpretReady = function (messageReady) {
 			aiMessenger.sendMessage(messageReady);
 		}
 	}
-	//wtf man?
+	//why does this work?
 	guiConnector.setSetUpViewVisible(false);
 };
 
