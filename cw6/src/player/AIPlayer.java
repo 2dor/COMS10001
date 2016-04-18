@@ -18,7 +18,6 @@ public class AIPlayer implements Player {
 	private List<Colour> players;
 	private List<Boolean> rounds;
 	private int currentRound;
-	private String graphFilename;
     private Simulator simulator;
     private Colour player;
 
@@ -28,46 +27,34 @@ public class AIPlayer implements Player {
 		this.players = view.getPlayers();
 		this.rounds = view.getRounds();
 		this.currentRound = view.getRound();
-		this.graphFilename = graphFilename;
-        simulator = new Simulator(view, graphFilename);
-        //simulator = new ScotlandYardGraph();
-        // ScotlandYardGraphReader graphRead = new ScotlandYardGraphReader();
-        // try {
-        //     simulator = (Simulator) graphRead.readGraph(graphFilename);
-        // } catch(IOException e) {}
-        // simulator.setSimulator(view, graphFilename);
+        ScotlandYardGraph graph = makeGraph(graphFilename);
+        MapQueue<Integer,Token> queue = new ScotlandYardMapQueue<Integer,Token>();
+        simulator = new Simulator(5, this.rounds, graph, queue, 42);
+        simulator.setSimulator(view, graphFilename);
         this.player = player;
+    }
+
+    private ScotlandYardGraph makeGraph(String graphFilename) {
+        ScotlandYardGraphReader graphRead = new ScotlandYardGraphReader();
+        ScotlandYardGraph graph = new ScotlandYardGraph();
+        try {
+            graph = graphRead.readGraph(graphFilename);
+        } catch(IOException e) {
+            //TODO maybe: handle exception
+        }
+        return graph;
     }
 
     @Override
     public void notify(int location, List<Move> moves, Integer token, Receiver receiver) {
         //TODO: Some clever AI here ...
 		// System.out.println("Getting intelligent move");
-		// /*for each accesible node in moves compute score and choose best*/
-		// int destination = 0;
-		// int bestScore = -10;
-		// int destinationScore = 0;
+        int currentConfigurationScore = 0;
+        int level = 0;
+        Move bestMove = simulator.minimax(Colour.Black, location, level, currentConfigurationScore);
 
-        //make changes to the Simulator, send view to Simulator
-        //ask simulator for the next move
-
-		//Move bestMove = getMove(location, moves);
-
-
-
-
-        // for (Move m : moves) {
-		// 	if (m instanceof MoveTicket) destination = setDestination((MoveTicket) m);
-		// 	else destination = setDestination((MoveDouble) m);
-		// 	destinationScore = score(destination);
-		// 	if (bestScore < destinationScore) {
-		// 		bestScore = destinationScore;
-		// 		bestMove = m;
-		// 	}
-		// }
         // Collections.shuffle(moves);
         // Move bestMove = moves.get(0);
-        Move bestMove = simulator.getMrXMove(location, moves);
         System.out.println("Playing intelligent move" + bestMove);
         receiver.playMove(bestMove, token);
     }

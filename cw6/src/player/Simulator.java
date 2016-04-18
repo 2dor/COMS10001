@@ -6,30 +6,69 @@ import graph.*;
 import java.io.IOException;
 import java.util.*;
 
-public class Simulator extends ScotlandYardGraph {
+public class Simulator extends ScotlandYard {
     private ScotlandYardView view;
-    private ScotlandYardGraph graph;
     private String graphFilename;
     private Set<Integer> mrXPossibleLocations;
-    private List<Colour> players;
     private List<Boolean> rounds;
     private int currentRound;
-    private int mrXLocation;
+    private final static Colour[] playerColours = {
+        Colour.Black,
+        Colour.Blue,
+        Colour.Green,
+        Colour.Red,
+        Colour.White,
+        Colour.Yellow
+    };
+    public final static Ticket[] ticketType = {
+        Ticket.Taxi,
+        Ticket.Bus,
+        Ticket.Underground,
+        Ticket.Double,
+        Ticket.Secret
+    };
+    public final static int[] mrXTicketNumbers = {
+        4,
+        3,
+        3,
+        2,
+        5
+    };
+    public final static int[] detectiveTicketNumbers = {
+        11,
+        8,
+        4,
+        0,
+        0
+    };
+    public Simulator(Integer numberOfDetectives,
+                    List<Boolean> rounds,
+                    ScotlandYardGraph graph,
+                    MapQueue<Integer, Token> queue,
+                    Integer gameId) {
+        super(numberOfDetectives, rounds, graph, queue, gameId);
+    }
 
-    public Simulator(ScotlandYardView view, String graphFilename) {
-        ScotlandYardGraphReader graphRead = new ScotlandYardGraphReader();
-        try {
-            this.graph = graphRead.readGraph(graphFilename);
-        } catch(IOException e) {
-            //TODO maybe: handle exception
+    public void setSimulator(ScotlandYardView view, String graphFilename) {
+        for (Colour c : playerColours){
+            System.out.println(c);
         }
         this.view = view;
         this.graphFilename = graphFilename;
-        this.players = view.getPlayers();
 		this.rounds = view.getRounds();
 		this.currentRound = view.getRound();
-        this.mrXLocation = 0;
         this.mrXPossibleLocations = new HashSet<Integer>();
+
+        for (Colour p : playerColours) {
+            Map<Ticket, Integer> tickets = new HashMap<Ticket, Integer>();
+            for(int i = 0; i < ticketType.length; ++i)
+            if (p == Colour.Black) {
+                tickets.put(ticketType[i], mrXTicketNumbers[i]);
+            } else {
+                tickets.put(ticketType[i], detectiveTicketNumbers[i]);
+            }
+        }
+        this.currentPlayer = getPlayer(Colour.Black);
     }
 
     private int setDestination(MoveTicket move) {
@@ -39,6 +78,76 @@ public class Simulator extends ScotlandYardGraph {
 	private int setDestination(MoveDouble move) {
 		return move.move2.target;
 	}
+
+    private void previousPlayer() {
+        int newIndex = 0;
+        for (int i = 0; i < noOfPlayers; ++i) {
+            if (playerColours[i] == currentPlayer.getColour()) {
+                newIndex = ((i - 1) + noOfPlayers) % noOfPlayers;
+                break;
+            }
+        }
+        currentPlayer = getPlayer(playerColours[newIndex]);
+    }
+
+    private void reversePlay(MoveTicket move, int previousLocation) {
+        currentPlayer.setLocation(previousLocation);
+        currentPlayer.addTicket(move.ticket);
+        if (currentPlayer.getColour() == Colour.Black) {
+            --round;
+        } else {
+            getPlayer(Colour.Black).removeTicket(move.ticket);
+        }
+    }
+
+    private void reversePlay(MoveDouble move, int previousLocation) {
+        reversePlay(move.move2, move.move1.target);
+        reversePlay(move.move1, previousLocation);
+        getPlayer(Colour.Black).addTicket(Ticket.Double);
+    }
+
+    private void reversePlay(Move move, int previousLocation) {
+        if (move instanceof MoveTicket) {
+            reversePlay((MoveTicket) move, previousLocation);
+        } else if (move instanceof MoveDouble) {
+            reversePlay((MoveDouble) move, previousLocation);
+        } else if (move instanceof MovePass) {
+            // We do not need to do anything in here
+        }
+    }
+    public Move minimax(Colour player, int location, int level, int currentConfigurationScore) {
+        List<Move> moves = validMoves(player);
+        Integer bestScore = 0;
+        if (player == Colour.Black) {
+            bestScore = Integer.MIN_VALUE;
+            currentConfigurationScore = getNodeRank(location);
+        } else {
+            bestScore = Integer.MAX_VALUE;
+            currentConfigurationScore = getDetectiveScore(location, validMoves(player));
+        }
+        if (level == 5) return moves.get(0);
+        Move bestMove = moves.get(0);
+        Integer nextScore = 0;
+        for (Move move : moves) {
+            play(move);//TODO: manually implement this method
+            nextPlayer();
+            minimax(currentPlayer.getColour(), currentPlayer.getLocation(), level + 1, nextScore);
+            if (player == Colour.Black) {
+                if (bestScore < nextScore) {
+                    bestScore = nextScore;
+                    bestMove = move;
+                }
+            } else {
+                if (bestScore > nextScore) {
+                    bestScore = nextScore;
+                    bestMove = move;
+                }
+            }
+            previousPlayer();
+            reversePlay(move, location);
+        }
+        return bestMove;
+    }
 
 	public Move getMrXMove(int location, List<Move> moves) {
 		System.out.println("Getting intelligent move");
@@ -134,8 +243,8 @@ public class Simulator extends ScotlandYardGraph {
 	private int getNodeRank(int location) {
 		Dijkstra dijkstra = new Dijkstra(graphFilename);
 		List<Integer> route = new ArrayList<Integer>();
-		int score = 6660000;
-		for (Colour p : players){
+		int score = 666013;
+		for (Colour p : playerColours){
 			if (p == Colour.Black) continue;
 			Map<Transport, Integer> tickets = new HashMap<Transport, Integer>();
 			tickets.put(Transport.Bus, view.getPlayerTickets(p, Ticket.fromTransport(Transport.Bus)));
@@ -153,65 +262,45 @@ public class Simulator extends ScotlandYardGraph {
 		return score;
 	}
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-    /*
-    public Move getDetectiveMove(int location, List<Move> moves) {
+    public int getDetectiveScore(int location, List<Move> moves) {
         currentRound = view.getRound();//update the round every time
         if (currentRound > 2) {
-            System.out.println("\nMr X location revealed and updated.");
+            //System.out.println("\nMr X location revealed and updated.");
             mrXLocation = view.getPlayerLocation(Colour.Black);
         }
         if (rounds.get(currentRound) == true) {
+            // clearing global list of Mr X possible locations
             mrXPossibleLocations.clear();
             mrXPossibleLocations.add(mrXLocation);
-            System.out.println("\nPOSSIBLE LOCATIONS RESTARTED");
+            //System.out.println("\nPOSSIBLE LOCATIONS RESTARTED");
         } else {
-            System.out.println("\nTrying to expand Mr X list of locations.");
+            //System.out.println("\nTrying to expand Mr X list of locations.");
             Set<Integer> newLocations = new HashSet<Integer>();
             for (Integer loc : mrXPossibleLocations) {
-                System.out.println("\nNODES FROM:" + loc);
+                //System.out.println("\nNODES FROM:" + loc);
                 List<Move> mrXMoves = graph.generateMoves(Colour.Black, loc);
                 for (Move a : mrXMoves) {
                     if (a instanceof MoveTicket) {
                         MoveTicket move = (MoveTicket) a;
                         newLocations.add(move.target);
-                        System.out.println(move.target);
+                        //System.out.println(move.target);
                     }
                     else if (a instanceof MoveDouble) {
                         MoveDouble move = (MoveDouble) a;
                         newLocations.add(move.move2.target);
-                        System.out.println(move.move2.target);
+                        //System.out.println(move.move2.target);
                     }
                 }
             }
             for (Integer i : newLocations) {
                 mrXPossibleLocations.add(i);
             }
-            System.out.println("\nPRINTING POSSIBLE LOCATIONS:");
-            for (Integer a : mrXPossibleLocations) {
-                System.out.println(a);
-            }
+            // System.out.println("\nPRINTING POSSIBLE LOCATIONS:");
+            // for (Integer a : mrXPossibleLocations) {
+            //     System.out.println(a);
+            // }
         }
-        return moves.get(0);
+        return mrXPossibleLocations.size();
     }
-    */
+
 }
