@@ -21,7 +21,11 @@ public class AIPlayer implements Player {
     private Simulator simulator;
     private Colour player;
 
-    public AIPlayer(ScotlandYardView view, String graphFilename, Colour player) {
+
+    public AIPlayer(ScotlandYardView view,
+                    String graphFilename,
+                    Colour player,
+                    int distancesByTickets[][][][][]) {
         //TODO: A better AI makes use of `view` and `graphFilename`.
 		this.view = view;
 		this.players = view.getPlayers();
@@ -30,7 +34,7 @@ public class AIPlayer implements Player {
         ScotlandYardGraph graph = makeGraph(graphFilename);
         MapQueue<Integer,Token> queue = new ScotlandYardMapQueue<Integer,Token>();
         simulator = new Simulator(5, this.rounds, graph, queue, 42);
-        simulator.setSimulator(view, graphFilename);
+        simulator.setSimulator(view, graphFilename, distancesByTickets);
         this.player = player;
     }
 
@@ -49,10 +53,14 @@ public class AIPlayer implements Player {
     public void notify(int location, List<Move> moves, Integer token, Receiver receiver) {
         //TODO: Some clever AI here ...
 		// System.out.println("Getting intelligent move");
-        int currentConfigurationScore = 0;
+        int[] currentConfigurationScore = new int[1];
+        currentConfigurationScore[0] = 0;
         int level = 0;
+        System.out.println("\nConfiguration before");
+        System.out.println(currentConfigurationScore[0]);
         Move bestMove = simulator.minimax(Colour.Black, location, level, currentConfigurationScore);
-
+        System.out.println("\nConfiguration score after");
+        System.out.println(currentConfigurationScore[0]);
         // Collections.shuffle(moves);
         // Move bestMove = moves.get(0);
         System.out.println("Playing intelligent move" + bestMove);
