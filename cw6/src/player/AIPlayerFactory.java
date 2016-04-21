@@ -20,7 +20,8 @@ import java.util.*;
 public class AIPlayerFactory implements PlayerFactory {
 
     private int distancesByTickets[][][][][];
-    String graphFilename;
+    private String graphFilename;
+    private List<Spectator> spectators = new ArrayList<Spectator>();
 
     @Override
     public Player getPlayer(Colour colour, ScotlandYardView view, String mapFilename) {
@@ -29,7 +30,9 @@ public class AIPlayerFactory implements PlayerFactory {
         distancesByTickets = new int[201][201][12][9][5];
         ready();
         System.out.println("Creating " + colour + " random player.\n");
-        return new AIPlayer(view, mapFilename, colour, distancesByTickets);
+        AIPlayer aiPlayer = new AIPlayer(view, mapFilename, colour, distancesByTickets);
+        addSpectator(aiPlayer);
+        return aiPlayer;
     }
     /*
      * parses the InputStream and returns an int
@@ -115,9 +118,13 @@ public class AIPlayerFactory implements PlayerFactory {
         }*/
     }
 
+
+    private void addSpectator(Spectator aiPlayer) {
+        spectators.add(aiPlayer);
+    }
+
     @Override
     public List<Spectator> getSpectators(ScotlandYardView view) {
-        List<Spectator> spectators = new ArrayList<Spectator>();
         //TODO: Add your AI here if you want it to be a spectator.
         return spectators;
     }

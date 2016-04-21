@@ -135,6 +135,65 @@ public class Simulator extends ScotlandYard {
         }
     }
 
+    @Override
+    protected void play(Move move) {
+        if (move instanceof MoveTicket) play((MoveTicket) move);
+        else if (move instanceof MoveDouble) play((MoveDouble) move);
+        else if (move instanceof MovePass) play((MovePass) move);
+    }
+
+    @Override
+    protected void play(MoveTicket move) {
+        Colour colour = move.colour;
+		Ticket ticket = move.ticket;
+		int target = move.target;
+		PlayerData player = getPlayer(colour);
+		player.removeTicket(ticket);
+		player.setLocation(target);
+        //if (currentPlayer != Colour.Black || (rounds.get(currentRound) && ticket != Ticket.Secret))
+        //Give ticket to mrX
+		if (colour != Colour.Black) {
+			PlayerData mrX = getPlayer(Colour.Black);
+			mrX.addTicket(ticket);
+		} else {
+			currentRound++;
+		}
+        notifySpectators(move);
+    }
+
+    @Override
+    protected void play(MoveDouble move) {
+        notifySpectators(move);
+		play(move.move1);
+		play(move.move2);
+        PlayerData mrX = getPlayer(move.colour);
+        mrX.removeTicket(Ticket.Double);
+    }
+
+    /**
+     * Plays a MovePass.
+     *
+     * @param move the MovePass to play.
+     */
+    @Override
+    protected void play(MovePass move) {
+        notifySpectators(move);
+    }
+
+    public void setLocations(Move move) {
+        if (move instanceof MovePass) {
+            return;
+        } else if (move instanceof MoveTicket) {
+            getPlayer(move.colour).setLocation(setDestination((MoveTicket) move));
+        } else if (move instanceof MoveDouble) {
+            getPlayer(move.colour).setLocation(setDestination((MoveDouble) move));
+        }
+    }
+
+    private void notifySpectators(Move move) {
+
+    }
+
     // TEST IF CONFIGURATION SCORES ARE COMPUTED CORRECTLY
     public Move minimax(Colour player, int location, int level, int[] currentConfigurationScore) {
         // update Mr X's position, since this is the only time we have access to it.
@@ -150,8 +209,13 @@ public class Simulator extends ScotlandYard {
         //     System.out.println(p.getColour());
         //     System.out.println(p.getLocation());
         // }
+        if (level == 0) {
+            for (PlayerData p : players) {
+                System.out.println("player: " + p.getColour() + " location: " + p.getLocation());
 
-        //System.out.println("player: " + player + " location: " + location + " level: " + level);
+            }
+
+        }
         List<Move> moves = validMoves(player);
         Integer bestScore = 0;
         if (player == Colour.Black) {
@@ -172,7 +236,7 @@ public class Simulator extends ScotlandYard {
             if (move instanceof MoveDouble) continue;
             MoveTicket currentMove = (MoveTicket) move;
             if (currentMove.ticket == Ticket.Secret) continue;
-            play(move);//TODO: manually implement this method
+            play(move);
             //System.out.println("Moving to " + currentMove.target);
             nextPlayer();
             minimax(currentPlayer.getColour(), currentPlayer.getLocation(), level + 1, nextScore);

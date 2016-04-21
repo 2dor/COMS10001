@@ -13,7 +13,7 @@ import java.io.IOException;
  * list of valid moves. The return value is the desired move,
  * which must be one from the list.
  */
-public class AIPlayer implements Player {
+public class AIPlayer implements Player, Spectator {
 	private ScotlandYardView view;
 	private List<Colour> players;
 	private List<Boolean> rounds;
@@ -67,11 +67,9 @@ public class AIPlayer implements Player {
         receiver.playMove(bestMove, token);
     }
 
-    // @Override
-    // public void notify(Move move) {
-    //     if () {
-    //
-    //     }
-    // }
+    @Override
+    public void notify(Move move) {
+        simulator.setLocations(move);
+    }
 
 }
