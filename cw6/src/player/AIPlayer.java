@@ -58,7 +58,11 @@ public class AIPlayer implements Player, Spectator {
         int level = 0;
         System.out.println("\nConfiguration before");
         System.out.println(currentConfigurationScore[0]);
-        Move bestMove = simulator.minimax(Colour.Black, location, level, currentConfigurationScore);
+        for (Integer i : simulator.mrXPossibleLocations) {
+            System.out.print(i + " ");
+        }
+        System.out.println("");
+        Move bestMove = simulator.minimax(Colour.Black, location, level, currentConfigurationScore, simulator.mrXPossibleLocations);
         System.out.println("\nConfiguration score after");
         System.out.println(currentConfigurationScore[0]);
         // Collections.shuffle(moves);
@@ -69,7 +73,8 @@ public class AIPlayer implements Player, Spectator {
 
     @Override
     public void notify(Move move) {
-        simulator.setLocations(move);
+        System.out.println("I get the move!");
+        simulator.sendMove(move);
     }
 
 }

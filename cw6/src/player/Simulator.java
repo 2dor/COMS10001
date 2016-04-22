@@ -9,11 +9,13 @@ import java.util.*;
 public class Simulator extends ScotlandYard {
     private ScotlandYardView view;
     private String graphFilename;
-    private Set<Integer> mrXPossibleLocations;
+    public HashSet<Integer> mrXPossibleLocations;
+
     private List<Boolean> rounds;
     private int currentRound;
     private int distancesByTickets[][][][][];
     private int simulatedMoves;
+    private boolean occupiedNodes[];
 
     private final static Colour[] playerColours = {
         Colour.Black,
@@ -65,7 +67,9 @@ public class Simulator extends ScotlandYard {
 		this.rounds = view.getRounds();
 		this.currentRound = view.getRound();
         this.mrXPossibleLocations = new HashSet<Integer>();
+        this.mrXPossibleLocations.add(35);
         this.distancesByTickets = distancesByTickets;
+        this.occupiedNodes = new boolean[201];
         System.out.println("\nPRINTING SOME DISTANCE");
         System.out.println(this.distancesByTickets[1][2][3][2][1]);
 
@@ -112,10 +116,12 @@ public class Simulator extends ScotlandYard {
     private void reversePlay(MoveTicket move, int previousLocation) {
         currentPlayer.setLocation(previousLocation);
         currentPlayer.addTicket(move.ticket);
+        occupiedNodes[move.target] = false;
         if (currentPlayer.getColour() == Colour.Black) {
-            --round;
+            --currentRound;
         } else {
             getPlayer(Colour.Black).removeTicket(move.ticket);
+            occupiedNodes[previousLocation] = true;
         }
     }
 
@@ -149,12 +155,14 @@ public class Simulator extends ScotlandYard {
 		int target = move.target;
 		PlayerData player = getPlayer(colour);
 		player.removeTicket(ticket);
+        occupiedNodes[player.getLocation()] = false;
 		player.setLocation(target);
         //if (currentPlayer != Colour.Black || (rounds.get(currentRound) && ticket != Ticket.Secret))
         //Give ticket to mrX
 		if (colour != Colour.Black) {
 			PlayerData mrX = getPlayer(Colour.Black);
 			mrX.addTicket(ticket);
+            occupiedNodes[target] = true;
 		} else {
 			currentRound++;
 		}
@@ -180,13 +188,13 @@ public class Simulator extends ScotlandYard {
         notifySpectators(move);
     }
 
-    public void setLocations(Move move) {
+    public void sendMove(Move move) {
         if (move instanceof MovePass) {
             return;
-        } else if (move instanceof MoveTicket) {
-            getPlayer(move.colour).setLocation(setDestination((MoveTicket) move));
-        } else if (move instanceof MoveDouble) {
-            getPlayer(move.colour).setLocation(setDestination((MoveDouble) move));
+        } else {
+            System.out.println("I am updating now!");
+            updatePossibleLocations(move, this.mrXPossibleLocations);
+            play(move);
         }
     }
 
@@ -195,13 +203,27 @@ public class Simulator extends ScotlandYard {
     }
 
     // TEST IF CONFIGURATION SCORES ARE COMPUTED CORRECTLY
-    public Move minimax(Colour player, int location, int level, int[] currentConfigurationScore) {
+    public Move minimax(Colour player,
+                        int location,
+                        int level,
+                        int[] currentConfigurationScore,
+                        HashSet<Integer> mrXOldLocations) {
         // update Mr X's position, since this is the only time we have access to it.
         // ++simulatedMoves;
         // System.out.println("Simulated moves: " + simulatedMoves);
+
         if (player == Colour.Black) {
             //mrXLocation = location;
             getPlayer(Colour.Black).setLocation(location);
+        }
+        if (isGameOver()) {
+            if (getWinningPlayers().size() == 1) {
+                currentConfigurationScore[0] = 100;// Mr.X won
+            } else {
+                currentConfigurationScore[0] = 0;// detectives won
+            }
+            return MoveTicket.instance(player, Ticket.Taxi, 69);
+            //int doesn't even matter
         }
         // System.out.println("\nAfter calling minimax, we have players: ");
         // for (PlayerData p : players) {
@@ -212,36 +234,55 @@ public class Simulator extends ScotlandYard {
         if (level == 0) {
             for (PlayerData p : players) {
                 System.out.println("player: " + p.getColour() + " location: " + p.getLocation());
-
             }
-
         }
         List<Move> moves = validMoves(player);
         Integer bestScore = 0;
-        if (player == Colour.Black) {
-            bestScore = Integer.MIN_VALUE;
-            currentConfigurationScore[0] = getNodeRank(location);
-            // System.out.println("\nConfiguration updated");
-            // System.out.println(currentConfigurationScore[0]);
-        } else {
-            bestScore = Integer.MAX_VALUE;
-            currentConfigurationScore[0] = getDetectiveScore(location, validMoves(player));
+        if ((level == 5) || (currentRound == 22 && player == Colour.Black)) {
+            if (player == Colour.Black) {
+                currentConfigurationScore[0] = getNodeRank(location);
+                // System.out.println("\nConfiguration updated");
+                // System.out.println(currentConfigurationScore[0]);
+            } else {
+                currentConfigurationScore[0] = mrXPossibleLocations.size();
+                //getDetectiveScore(location, validMoves(player));
+            }
+            return MoveTicket.instance(player, Ticket.Taxi, 69);
         }
-        if (level + 1 >= 9) return moves.get(0);
-        Move bestMove = moves.get(0);
+        Move bestMove = MoveTicket.instance(player, Ticket.Taxi, 69);
         int[] nextScore = new int[1];
         nextScore[0] = 0;
-
+        if (player == Colour.Black)
+            bestScore = Integer.MIN_VALUE;
+        else
+            bestScore = Integer.MAX_VALUE;
+        //System.out.println("\nbest score before: " + bestScore);
+        HashSet<Integer> mrXNewLocations = new HashSet<Integer>();
         for (Move move : moves) {
             if (move instanceof MoveDouble) continue;
+            if (move instanceof MovePass) continue;
             MoveTicket currentMove = (MoveTicket) move;
+
             if (currentMove.ticket == Ticket.Secret) continue;
+
+            mrXNewLocations.clear();
+            mrXNewLocations.addAll(mrXOldLocations);
+            updatePossibleLocations(move, mrXNewLocations);
             play(move);
             //System.out.println("Moving to " + currentMove.target);
             nextPlayer();
-            minimax(currentPlayer.getColour(), currentPlayer.getLocation(), level + 1, nextScore);
+            /*************************************/
+            minimax(currentPlayer.getColour(),
+                    currentPlayer.getLocation(),
+                    level + 1,
+                    nextScore,
+                    mrXNewLocations);
+            /*************************************/
             if (player == Colour.Black) {
                 if (bestScore < nextScore[0]) {
+                    // System.out.println("\nUpdating best move.");
+                    // System.out.println("bestScore: " + bestScore + " nextScore: " + nextScore[0]);
+                    // System.out.println(currentMove.target);
                     bestScore = nextScore[0];
                     bestMove = move;
                 }
@@ -254,6 +295,8 @@ public class Simulator extends ScotlandYard {
             previousPlayer();
             reversePlay(move, location);
         }
+        currentConfigurationScore[0] = bestScore;
+        //System.out.println("\nbest score after: " + bestScore);
         return bestMove;
     }
 
@@ -377,11 +420,60 @@ public class Simulator extends ScotlandYard {
 		return bestScore;
 	}
 
-    public int getDetectiveScore(int location, List<Move> moves) {
+    private void filterMoves(List<Move> possibleMoves, MoveTicket moveSingle, MoveTicket moveMade, HashSet<Integer> locations) {
+        if (moveSingle.ticket == moveMade.ticket && !occupiedNodes[moveSingle.target]){
+            locations.add(moveSingle.target);
+        }
+    }
+
+    private void updatePossibleLocations(Move move, HashSet<Integer> locations) {
+        if (move instanceof MoveTicket) updatePossibleLocations((MoveTicket) move, locations);
+        else if (move instanceof MoveDouble) updatePossibleLocations((MoveDouble) move, locations);
+    }
+
+    private void updatePossibleLocations(MoveTicket moveMade, HashSet<Integer> locations) {
+        if (moveMade.colour == Colour.Black) {
+            System.out.println("I am black!");
+            List<Move> possibleMoves = new ArrayList<Move>();
+            HashSet<Integer> newLocations = new HashSet<Integer>(locations);
+            System.out.println("I have " + locations.size() + "locations.");
+            for (Integer location : locations) {
+                possibleMoves = graph.generateMoves(Colour.Black, location);
+                for (Move m : possibleMoves) {
+                    if (m instanceof MoveTicket) {
+                        MoveTicket moveSingle = (MoveTicket) m;
+                        filterMoves(possibleMoves, moveSingle, moveMade, newLocations);
+                    } else if (m instanceof MoveDouble) {
+                        MoveDouble moveDouble = (MoveDouble) m;
+                        MoveTicket moveSingle = moveDouble.move1;
+                        filterMoves(possibleMoves, moveSingle, moveMade, newLocations);
+                        moveSingle = moveDouble.move2;
+                        filterMoves(possibleMoves, moveSingle, moveMade, newLocations);
+                    }
+                }
+            }
+            locations = newLocations;
+            System.out.println("Now I have " + locations.size() + "locations.");
+        } else {
+            if (locations.contains(moveMade.target)) {
+                locations.remove(moveMade.target);
+            }
+        }
+    }
+
+    protected void updatePossibleLocations(MoveDouble move, HashSet<Integer> locations) {
+        updatePossibleLocations(move.move1, locations);
+        updatePossibleLocations(move.move2, locations);
+    }
+
+
+    /*public int getDetectiveScore(int location, List<Move> moves) {
         currentRound = view.getRound();//update the round every time
         if (currentRound > 2) {
             //System.out.println("\nMr X location revealed and updated.");
-            mrXLocation = view.getPlayerLocation(Colour.Black);
+            mrXLocation = getPlayer(Colour.Black).getLocation();
+        } else {
+            return 18;//number of initial locations
         }
         if (rounds.get(currentRound) == true) {
             // clearing global list of Mr X possible locations
@@ -416,6 +508,6 @@ public class Simulator extends ScotlandYard {
             // }
         }
         return mrXPossibleLocations.size();
-    }
+    }*/
 
 }
