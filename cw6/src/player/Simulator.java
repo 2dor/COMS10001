@@ -192,9 +192,20 @@ public class Simulator extends ScotlandYard {
         if (move instanceof MovePass) {
             return;
         } else {
-            System.out.println("I am updating now!");
+            System.out.println("\nI am updating now!");
+            System.out.println("Printing old locations:");
+            for (Integer loc : this.mrXPossibleLocations) {
+                System.out.print(loc + ", ");
+            }
+            System.out.println("\n");
             updatePossibleLocations(move, this.mrXPossibleLocations);
+            System.out.println("Printing updated locations:");
+            for (Integer loc : this.mrXPossibleLocations) {
+                System.out.print(loc + ", ");
+            }
+            System.out.println("\n");
             play(move);
+            System.out.println("\nCurrent Round: " + currentRound + "\n");
         }
     }
 
@@ -218,7 +229,7 @@ public class Simulator extends ScotlandYard {
         }
         if (isGameOver()) {
             if (getWinningPlayers().size() == 1) {
-                currentConfigurationScore[0] = 100;// Mr.X won
+                currentConfigurationScore[0] = 99999;// Mr.X won
             } else {
                 currentConfigurationScore[0] = 0;// detectives won
             }
@@ -238,15 +249,11 @@ public class Simulator extends ScotlandYard {
         }
         List<Move> moves = validMoves(player);
         Integer bestScore = 0;
-        if ((level == 5) || (currentRound == 22 && player == Colour.Black)) {
-            if (player == Colour.Black) {
-                currentConfigurationScore[0] = getNodeRank(location);
-                // System.out.println("\nConfiguration updated");
-                // System.out.println(currentConfigurationScore[0]);
-            } else {
-                currentConfigurationScore[0] = mrXPossibleLocations.size();
-                //getDetectiveScore(location, validMoves(player));
-            }
+        if ((level == 8) || (currentRound == 22 && player == Colour.Black)) {
+            currentConfigurationScore[0] = getNodeRank(location) * 100;
+            currentConfigurationScore[0] += mrXOldLocations.size();
+            System.out.print("\nConfiguration updated ");
+            System.out.println(currentConfigurationScore[0]);
             return MoveTicket.instance(player, Ticket.Taxi, 69);
         }
         Move bestMove = MoveTicket.instance(player, Ticket.Taxi, 69);
@@ -420,50 +427,79 @@ public class Simulator extends ScotlandYard {
 		return bestScore;
 	}
 
-    private void filterMoves(List<Move> possibleMoves, MoveTicket moveSingle, MoveTicket moveMade, HashSet<Integer> locations) {
+    private void filterMoves(MoveTicket moveSingle, MoveTicket moveMade, HashSet<Integer> locations) {
         if (moveSingle.ticket == moveMade.ticket && !occupiedNodes[moveSingle.target]){
             locations.add(moveSingle.target);
         }
     }
 
-    private void updatePossibleLocations(Move move, HashSet<Integer> locations) {
-        if (move instanceof MoveTicket) updatePossibleLocations((MoveTicket) move, locations);
-        else if (move instanceof MoveDouble) updatePossibleLocations((MoveDouble) move, locations);
-    }
-
-    private void updatePossibleLocations(MoveTicket moveMade, HashSet<Integer> locations) {
-        if (moveMade.colour == Colour.Black) {
-            System.out.println("I am black!");
-            List<Move> possibleMoves = new ArrayList<Move>();
-            HashSet<Integer> newLocations = new HashSet<Integer>(locations);
-            System.out.println("I have " + locations.size() + "locations.");
-            for (Integer location : locations) {
-                possibleMoves = graph.generateMoves(Colour.Black, location);
-                for (Move m : possibleMoves) {
-                    if (m instanceof MoveTicket) {
-                        MoveTicket moveSingle = (MoveTicket) m;
-                        filterMoves(possibleMoves, moveSingle, moveMade, newLocations);
-                    } else if (m instanceof MoveDouble) {
-                        MoveDouble moveDouble = (MoveDouble) m;
-                        MoveTicket moveSingle = moveDouble.move1;
-                        filterMoves(possibleMoves, moveSingle, moveMade, newLocations);
-                        moveSingle = moveDouble.move2;
-                        filterMoves(possibleMoves, moveSingle, moveMade, newLocations);
-                    }
-                }
-            }
-            locations = newLocations;
-            System.out.println("Now I have " + locations.size() + "locations.");
-        } else {
-            if (locations.contains(moveMade.target)) {
-                locations.remove(moveMade.target);
+    private void filterMoves(MoveDouble moveDouble, MoveDouble moveMade, HashSet<Integer> locations) {
+        if (moveDouble.move1.ticket == moveMade.move1.ticket && !occupiedNodes[moveDouble.move1.target]){
+            if (moveDouble.move2.ticket == moveMade.move2.ticket && !occupiedNodes[moveDouble.move2.target]){
+                locations.add(moveDouble.move2.target);
             }
         }
     }
 
-    protected void updatePossibleLocations(MoveDouble move, HashSet<Integer> locations) {
-        updatePossibleLocations(move.move1, locations);
-        updatePossibleLocations(move.move2, locations);
+    private void updatePossibleLocations(Move moveMade, HashSet<Integer> locations) {
+        if (getCurrentPlayer() == Colour.Black && rounds.get(view.getRound()) == true) {
+            // clearing global list of Mr X possible locations
+            mrXLocation = view.getPlayerLocation(Colour.Black);
+            locations.clear();
+            locations.add(mrXLocation);
+            //System.out.println("\nPOSSIBLE LOCATIONS RESTARTED");
+        } else {
+            if (moveMade.colour == Colour.Black) {
+                // System.out.println("\nI am black!");
+                List<Move> possibleMoves = new ArrayList<Move>();
+                HashSet<Integer> newLocations = new HashSet<Integer>();
+                // System.out.println("I have " + newLocations.size() + "locations. And I should have: " + locations.size());
+                // System.out.println("Printing possible locations:");
+                // for (Integer loc : newLocations) {
+                //     System.out.print(loc + ", ");
+                // }
+                // System.out.println();
+                for (Integer location : locations) {
+                    possibleMoves = graph.generateMoves(Colour.Black, location);
+                    for (Move m : possibleMoves) {
+                        if (m instanceof MoveTicket && moveMade instanceof MoveTicket) {
+                            MoveTicket moveSingle = (MoveTicket) m;
+                            MoveTicket move = (MoveTicket) moveMade;
+                            filterMoves(moveSingle, move, newLocations);
+                        } else if (m instanceof MoveDouble && moveMade instanceof MoveDouble) {
+                            MoveDouble moveDouble = (MoveDouble) m;
+                            MoveDouble move = (MoveDouble) moveMade;
+                            filterMoves(moveDouble, move, newLocations);
+                        }
+                    }
+                }
+                locations.clear();
+                locations.addAll(newLocations);
+                // System.out.println("\nNow I have " + newLocations.size() + "locations. And I should have: " + locations.size());
+                // System.out.println("Printing updated locations:");
+                // for (Integer loc : newLocations) {
+                //     System.out.print(loc + ", ");
+                // }
+                // System.out.println("\n");
+            } else {
+                // System.out.println("\nI am a detective!");
+                MoveTicket moveSingle = (MoveTicket) moveMade;
+                // System.out.println("Printing possible locations:");
+                // for (Integer loc : locations) {
+                    // System.out.print(loc + ", ");
+                // }
+                // System.out.println();
+                if (locations.contains(moveSingle.target)) {
+                    // System.out.println("Removing target: " + moveSingle.target);
+                    locations.remove(moveSingle.target);
+                    // System.out.println("Printing updated locations:");
+                    // for (Integer loc : locations) {
+                    //     System.out.print(loc + ", ");
+                    // }
+                    // System.out.println("\n");
+                }
+            }
+        }
     }
 
 
