@@ -22,22 +22,21 @@ public class Simulator extends ScotlandYard {
     private static Ticket UG = Ticket.fromTransport(Transport.Underground);
     private static MoveTicket DUMMYMOVE = MoveTicket.instance(Colour.Black, Ticket.Taxi, 42);
 
-        private final static Colour[] playerColours = {
-            Colour.Black,
-            Colour.Blue,
-            Colour.Green,
-            Colour.Red,
-            Colour.White,
-            Colour.Yellow
-        };
-        public final static Ticket[] ticketType = {
-            Ticket.Taxi,
-            Ticket.Taxi,
-            Ticket.Bus,
-            Ticket.Underground,
-            Ticket.Secret,
-            Ticket.Double
-        };
+    private final static Colour[] playerColours = {
+        Colour.Black,
+        Colour.Blue,
+        Colour.Green,
+        Colour.Red,
+        Colour.White,
+        Colour.Yellow
+    };
+    public final static Ticket[] ticketType = {
+        Ticket.Taxi,
+        Ticket.Bus,
+        Ticket.Underground,
+        Ticket.Secret,
+        Ticket.Double
+    };
     public final static int[] mrXTicketNumbers = {
         4,
         3,
@@ -433,58 +432,17 @@ public class Simulator extends ScotlandYard {
     }
 
 
-    /*public int getDetectiveScore(int location, List<Move> moves) {
-        currentRound = view.getRound();//update the round every time
-        if (currentRound > 2) {
-            //System.out.println("\nMr X location revealed and updated.");
-            mrXLocation = getPlayer(Colour.Black).getLocation();
-        } else {
-            return 18;//number of initial locations
-        }
-        if (rounds.get(currentRound) == true) {
-            // clearing global list of Mr X possible locations
-            mrXPossibleLocations.clear();
-            mrXPossibleLocations.add(mrXLocation);
-            //System.out.println("\nPOSSIBLE LOCATIONS RESTARTED");
-        } else {
-            //System.out.println("\nTrying to expand Mr X list of locations.");
-            Set<Integer> newLocations = new HashSet<Integer>();
-            for (Integer loc : mrXPossibleLocations) {
-                //System.out.println("\nNODES FROM:" + loc);
-                List<Move> mrXMoves = graph.generateMoves(Colour.Black, loc);
-                for (Move a : mrXMoves) {
-                    if (a instanceof MoveTicket) {
-                        MoveTicket move = (MoveTicket) a;
-                        newLocations.add(move.target);
-                        //System.out.println(move.target);
-                    }
-                    else if (a instanceof MoveDouble) {
-                        MoveDouble move = (MoveDouble) a;
-                        newLocations.add(move.move2.target);
-                        //System.out.println(move.move2.target);
-                    }
-                }
-            }
-            for (Integer i : newLocations) {
-                mrXPossibleLocations.add(i);
-            }
-            // System.out.println("\nPRINTING POSSIBLE LOCATIONS:");
-            // for (Integer a : mrXPossibleLocations) {
-            //     System.out.println(a);
-            // }
-        }
-        return mrXPossibleLocations.size();
-    }*/
-    public int[] validMoves(Colour player) {
-       int[] listOfValidMoves = new int[30];
-       PlayerData playerAux = getPlayer(player);
-       generateMoves(playerAux, listOfValidMoves);
-       if(listOfValidMoves.length() == 0 && player != Colour.Black){
-           listOfValidMoves.add(MovePass.instance(player));
-       }
-       return listOfValidMoves;
 
-   }
+   //  public int[] validMoves(Colour player) {
+   //     int[] listOfValidMoves = new int[30];
+   //     PlayerData playerAux = getPlayer(player);
+   //     generateMoves(playerAux, listOfValidMoves);
+   //     if(listOfValidMoves.length() == 0 && player != Colour.Black){
+   //         listOfValidMoves.add(MovePass.instance(player));
+   //     }
+   //     return listOfValidMoves;
+   //
+   // }
 
    /**
     * Returns true if target node is occupied
@@ -492,76 +450,74 @@ public class Simulator extends ScotlandYard {
     * @param edge The edge we are using to test if the target node is occupied.
     * @return true if target occupied, false otherwise.
     */
-   private boolean isOccupied(Edge<Integer, Transport> edge) {
-       for (PlayerData p : playersInGame) {
-           if (p.getColour() != Colour.Black && p.getLocation() == (Integer) edge.getTarget().getIndex()) {
-               return true;
-           }
-       }
-       return false;
+   // private boolean isOccupied(Edge<Integer, Transport> edge) {
+   //     for (PlayerData p : playersInGame) {
+   //         if (p.getColour() != Colour.Black && p.getLocation() == (Integer) edge.getTarget().getIndex()) {
+   //             return true;
+   //         }
+   //     }
+   //     return false;
+   // }
+
+   // Converts a colour into the Move form.
+   public int encodeColour(Colour colour) {
+	   return (playerColours.indexOf(Colour.Black) + 1) * 10000;
    }
 
-   /**
-    * Adds single valid moves to listOfValidMoves, and calls mrXDoubleMoves()
-    *
-    * @param playerAux current player's data.
-    * @param listOfValidMoves list of generated valid moves for current player.
-    */
+   // Converts a ticket into the Move form.
+   public int encodeTicket(Ticket ticket) {
+	   return (ticketType.indexOf(ticket) + 1) * 1000;
+   }
+
+   // Takes an array and an element as parameter and adds the element
+   // to the array.
+   public int[] addElement(int[] a, int e) {
+	   a  = Arrays.copyOf(a, a.length + 1);
+	   a[a.length - 1] = e;
+	   return a;
+   }
+
+   // Generates all possible moves(encoded form) for a player given a location.
    private void generateMoves(Colour colour, int location) {
-       PlayerData player = getPlayer(colour);
+	   int[] generatedMoves = new int[2];
+	   int player = encodeColour(colour);
+	   int normalTicket = 0;
+	   int secretTicket = encodeTicket(Ticket.Secret);
+	   int normalMove = 0;
+	   int secretMove = 0;
        Node<Integer> nodeLocation = graph.getNode(location);
        for (Edge<Integer, Transport> e : graph.getEdgesFrom(nodeLocation)) {
-           currentTicket = Ticket.fromTransport(e.getData());
-               MoveTicket ticketNormal = MoveTicket.instance(playerAux.getColour(), currentTicket, e.getTarget().getIndex());
-               listOfValidMoves.add(ticketNormal);
-               if (playerAux.getColour() == Colour.Black) {
-                   if (playerAux.hasTickets(Ticket.Secret)) {
-                       MoveTicket ticketSecret = MoveTicket.instance(playerAux.getColour(), Ticket.Secret, e.getTarget().getIndex());
-                       listOfValidMoves.add(ticketSecret);
-                       if (playerAux.hasTickets(Ticket.Double)) {
-                           playerAux.removeTicket(currentTicket);
-                           mrXDoubleMoves(playerAux, e, ticketSecret, listOfValidMoves);
-                           playerAux.addTicket(currentTicket);
-                       }
-                   }
-                   if (playerAux.hasTickets(Ticket.Double)) {
-                       playerAux.removeTicket(currentTicket);
-                       mrXDoubleMoves(playerAux, e, ticketNormal, listOfValidMoves);
-                       playerAux.addTicket(currentTicket);
-                   }
-               }
-           }
-       }
-   }
+           normalTicket = encodeTicket(Ticket.fromTransport(e.getData()));
+		   normalMove = player + normalTicket + e.getTarget().getIndex();
+		   generatedMoves = addElement(generatedMoves, normalMove);
+           if (colour == Colour.Black) {
+			   secretMove = player + secretTicket + e.getTarget().getIndex();
+			   generatedMoves = addElement(generatedMoves, secretMove);
+			   generateDoubleMoves(player, e, normalMove, generatedMoves);
+			   generateDoubleMoves(player, e, secretMove, generatedMoves);
+		   }
+    	}
+    }
 
-   /**
-    * Adds double valid moves to listOfValidMoves in the case of mrX
-    *
-    * @param playerAux current player's data.
-    * @param previousEdge the edge used in the previous move
-    * @param ticketPrevious previous ticket
-    * @param listOfValidMoves list of generated valid moves for current player.
-    */
-   private void mrXDoubleMoves(PlayerData playerAux, Edge previousEdge, MoveTicket ticketPrevious, List<Move> listOfValidMoves) {
-       boolean flagUnreachable = false;
-       Ticket currentTicket;
+   // Generates all double moves given a player, previous edge and previous move.
+   // Double moves are two single moves concatenated.
+   private void generateDoubleMoves(int player, Edge previousEdge, int movePrevious, int[] generatedMoves) {
+	   int normalTicket = 0;
+ 	   int secretTicket = encodeTicket(Ticket.Secret);
+ 	   int normalMove = 0;
+	   int secretMove = 0;
+	   int normalDouble = 0;
+	   int secretDouble = 0;
        Integer middle = (Integer) previousEdge.getTarget().getIndex();
        Node<Integer> nodeLocation = graph.getNode(middle);
        for (Edge<Integer, Transport> e : graph.getEdgesFrom(nodeLocation)) {
-           ticketType.indexOf(Ticket.e.getData())
-           currentTicket = Ticket.fromTransport(e.getData());
-           flagUnreachable = isOccupied(e);
-           if (!playerAux.hasTickets(currentTicket)){
-               flagUnreachable = true;
-           }
-           if (!flagUnreachable) {
-               MoveTicket ticketNormal = MoveTicket.instance(playerAux.getColour(), currentTicket, e.getTarget().getIndex());
-               listOfValidMoves.add(MoveDouble.instance(playerAux.getColour(), ticketPrevious, ticketNormal));
-               if (playerAux.hasTickets(Ticket.Secret)) {
-                   MoveTicket ticketSecret = MoveTicket.instance(playerAux.getColour(), Ticket.Secret, e.getTarget().getIndex());
-                   listOfValidMoves.add(MoveDouble.instance(playerAux.getColour(), ticketPrevious, ticketSecret));
-               }
-           }
+           normalTicket = encodeTicket(Ticket.fromTransport(e.getData()));
+		   normalMove = player + normalTicket + e.getTarget().getIndex();
+		   normalDouble = movePrevious * 100000 + normalMove;
+		   generatedMoves = addElement(generatedMoves, normalDouble);
+		   secretMove = player + secretTicket + e.getTarget().getIndex();
+		   secretDouble = movePrevious * 100000 + secretMove;
+		   generatedMoves = addElement(generatedMoves, secretDouble);
        }
    }
 }
