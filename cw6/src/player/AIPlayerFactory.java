@@ -28,7 +28,9 @@ public class AIPlayerFactory implements PlayerFactory {
         //TODO: Update this with your AI implementation.
         System.out.println(mapFilename);
         distancesByTickets = new int[201][201][12][9][5];
+        testEfficiency.test2();
         ready();
+        //testEfficiency.test1();
         System.out.println("Creating " + colour + " random player.\n");
         AIPlayer aiPlayer = new AIPlayer(view, mapFilename, colour, distancesByTickets);
         addSpectator(aiPlayer);

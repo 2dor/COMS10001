@@ -62,7 +62,12 @@ public class AIPlayer implements Player, Spectator {
             System.out.print(i + " ");
         }
         System.out.println("");
-        Move bestMove = simulator.minimax(Colour.Black, location, level, currentConfigurationScore, simulator.mrXPossibleLocations);
+        int bestScore = 0;
+        if (player == Colour.Black)
+            bestScore = Integer.MIN_VALUE;
+        else
+            bestScore = Integer.MAX_VALUE;
+        Move bestMove = simulator.minimax(Colour.Black, location, level, currentConfigurationScore, bestScore, simulator.mrXPossibleLocations);
         System.out.println("\nConfiguration score after");
         System.out.println(currentConfigurationScore[0]);
         // Collections.shuffle(moves);

@@ -16,28 +16,28 @@ public class Simulator extends ScotlandYard {
     private int distancesByTickets[][][][][];
     private int simulatedMoves;
     private boolean occupiedNodes[];
-    ArrayList<HashSet<Integer>> mrXNewLocations = new ArrayList<HashSet<Integer>>();
 
     private static Ticket TAXI = Ticket.fromTransport(Transport.Taxi);
     private static Ticket BUS = Ticket.fromTransport(Transport.Bus);
     private static Ticket UG = Ticket.fromTransport(Transport.Underground);
     private static MoveTicket DUMMYMOVE = MoveTicket.instance(Colour.Black, Ticket.Taxi, 42);
 
-    private final static Colour[] playerColours = {
-        Colour.Black,
-        Colour.Blue,
-        Colour.Green,
-        Colour.Red,
-        Colour.White,
-        Colour.Yellow
-    };
-    public final static Ticket[] ticketType = {
-        Ticket.Taxi,
-        Ticket.Bus,
-        Ticket.Underground,
-        Ticket.Double,
-        Ticket.Secret
-    };
+        private final static Colour[] playerColours = {
+            Colour.Black,
+            Colour.Blue,
+            Colour.Green,
+            Colour.Red,
+            Colour.White,
+            Colour.Yellow
+        };
+        public final static Ticket[] ticketType = {
+            Ticket.Taxi,
+            Ticket.Taxi,
+            Ticket.Bus,
+            Ticket.Underground,
+            Ticket.Secret,
+            Ticket.Double
+        };
     public final static int[] mrXTicketNumbers = {
         4,
         3,
@@ -76,9 +76,6 @@ public class Simulator extends ScotlandYard {
         this.mrXPossibleLocations.add(35);
         this.distancesByTickets = distancesByTickets;
         this.occupiedNodes = new boolean[201];
-        for (int i = 0; i < 10; ++i) {
-            mrXNewLocations.add(new HashSet<Integer>());
-        }
 
         for (Colour p : playerColours) {
             Map<Ticket, Integer> tickets = new HashMap<Ticket, Integer>();
@@ -225,6 +222,7 @@ public class Simulator extends ScotlandYard {
                         int location,
                         int level,
                         int[] currentConfigurationScore,
+                        int previousScore,
                         HashSet<Integer> mrXOldLocations) {
         // update Mr X's position, since this is the only time we have access to it.
         // ++simulatedMoves;
@@ -275,17 +273,27 @@ public class Simulator extends ScotlandYard {
             bestScore = Integer.MIN_VALUE;
         else
             bestScore = Integer.MAX_VALUE;
-        //System.out.println("\nbest score before: " + bestScore);
+        HashSet<Integer> mrXNewLocations = new HashSet<Integer>();
         for (Move move : moves) {
             if (move instanceof MoveDouble) continue;
             if (move instanceof MovePass) continue;
             MoveTicket currentMove = (MoveTicket) move;
 
             if (currentMove.ticket == Ticket.Secret) continue;
-
-            mrXNewLocations.get(level).clear();
-            mrXNewLocations.get(level).addAll(mrXOldLocations);
-            updatePossibleLocations(move, mrXNewLocations.get(level));
+            if (player == Colour.Black) {
+                if (bestScore > previousScore) {
+                    currentConfigurationScore[0] = bestScore;
+                    return bestMove;
+                }
+            } else {
+                if (bestScore < previousScore) {
+                    currentConfigurationScore[0] = bestScore;
+                    return bestMove;
+                }
+            }
+            mrXNewLocations.clear();
+            mrXNewLocations.addAll(mrXOldLocations);
+            updatePossibleLocations(move, mrXNewLocations);
             play(move);
             //System.out.println("Moving to " + currentMove.target);
             nextPlayer();
@@ -294,7 +302,8 @@ public class Simulator extends ScotlandYard {
                     currentPlayer.getLocation(),
                     level + 1,
                     nextScore,
-                    mrXNewLocations.get(level));
+                    bestScore,
+                    mrXNewLocations);
             /*************************************/
             if (player == Colour.Black) {
                 if (bestScore < nextScore[0]) {
@@ -466,5 +475,93 @@ public class Simulator extends ScotlandYard {
         }
         return mrXPossibleLocations.size();
     }*/
+    public int[] validMoves(Colour player) {
+       int[] listOfValidMoves = new int[30];
+       PlayerData playerAux = getPlayer(player);
+       generateMoves(playerAux, listOfValidMoves);
+       if(listOfValidMoves.length() == 0 && player != Colour.Black){
+           listOfValidMoves.add(MovePass.instance(player));
+       }
+       return listOfValidMoves;
 
+   }
+
+   /**
+    * Returns true if target node is occupied
+    *
+    * @param edge The edge we are using to test if the target node is occupied.
+    * @return true if target occupied, false otherwise.
+    */
+   private boolean isOccupied(Edge<Integer, Transport> edge) {
+       for (PlayerData p : playersInGame) {
+           if (p.getColour() != Colour.Black && p.getLocation() == (Integer) edge.getTarget().getIndex()) {
+               return true;
+           }
+       }
+       return false;
+   }
+
+   /**
+    * Adds single valid moves to listOfValidMoves, and calls mrXDoubleMoves()
+    *
+    * @param playerAux current player's data.
+    * @param listOfValidMoves list of generated valid moves for current player.
+    */
+   private void generateMoves(Colour colour, int location) {
+       PlayerData player = getPlayer(colour);
+       Node<Integer> nodeLocation = graph.getNode(location);
+       for (Edge<Integer, Transport> e : graph.getEdgesFrom(nodeLocation)) {
+           currentTicket = Ticket.fromTransport(e.getData());
+               MoveTicket ticketNormal = MoveTicket.instance(playerAux.getColour(), currentTicket, e.getTarget().getIndex());
+               listOfValidMoves.add(ticketNormal);
+               if (playerAux.getColour() == Colour.Black) {
+                   if (playerAux.hasTickets(Ticket.Secret)) {
+                       MoveTicket ticketSecret = MoveTicket.instance(playerAux.getColour(), Ticket.Secret, e.getTarget().getIndex());
+                       listOfValidMoves.add(ticketSecret);
+                       if (playerAux.hasTickets(Ticket.Double)) {
+                           playerAux.removeTicket(currentTicket);
+                           mrXDoubleMoves(playerAux, e, ticketSecret, listOfValidMoves);
+                           playerAux.addTicket(currentTicket);
+                       }
+                   }
+                   if (playerAux.hasTickets(Ticket.Double)) {
+                       playerAux.removeTicket(currentTicket);
+                       mrXDoubleMoves(playerAux, e, ticketNormal, listOfValidMoves);
+                       playerAux.addTicket(currentTicket);
+                   }
+               }
+           }
+       }
+   }
+
+   /**
+    * Adds double valid moves to listOfValidMoves in the case of mrX
+    *
+    * @param playerAux current player's data.
+    * @param previousEdge the edge used in the previous move
+    * @param ticketPrevious previous ticket
+    * @param listOfValidMoves list of generated valid moves for current player.
+    */
+   private void mrXDoubleMoves(PlayerData playerAux, Edge previousEdge, MoveTicket ticketPrevious, List<Move> listOfValidMoves) {
+       boolean flagUnreachable = false;
+       Ticket currentTicket;
+       Integer middle = (Integer) previousEdge.getTarget().getIndex();
+       Node<Integer> nodeLocation = graph.getNode(middle);
+       for (Edge<Integer, Transport> e : graph.getEdgesFrom(nodeLocation)) {
+           ticketType.indexOf(Ticket.e.getData())
+           currentTicket = Ticket.fromTransport(e.getData());
+           flagUnreachable = isOccupied(e);
+           if (!playerAux.hasTickets(currentTicket)){
+               flagUnreachable = true;
+           }
+           if (!flagUnreachable) {
+               MoveTicket ticketNormal = MoveTicket.instance(playerAux.getColour(), currentTicket, e.getTarget().getIndex());
+               listOfValidMoves.add(MoveDouble.instance(playerAux.getColour(), ticketPrevious, ticketNormal));
+               if (playerAux.hasTickets(Ticket.Secret)) {
+                   MoveTicket ticketSecret = MoveTicket.instance(playerAux.getColour(), Ticket.Secret, e.getTarget().getIndex());
+                   listOfValidMoves.add(MoveDouble.instance(playerAux.getColour(), ticketPrevious, ticketSecret));
+               }
+           }
+       }
+   }
 }
