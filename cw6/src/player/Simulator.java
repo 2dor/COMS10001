@@ -459,65 +459,73 @@ public class Simulator extends ScotlandYard {
    //     return false;
    // }
 
-   // Converts a colour into the Move form.
-   public int encodeColour(Colour colour) {
-	   return (playerColours.indexOf(Colour.Black) + 1) * 10000;
-   }
+    // Converts a colour into the Move form.
+    public int encodeColour(Colour colour) {
+       for (int i = 0; i < 6; ++i) {
+           if (playerColours[i] == colour)
+                return (i + 1) * 10000;
+       }
+       return -1;
+    }
 
-   // Converts a ticket into the Move form.
-   public int encodeTicket(Ticket ticket) {
-	   return (ticketType.indexOf(ticket) + 1) * 1000;
-   }
+    // Converts a ticket into the Move form.
+    public int encodeTicket(Ticket ticket) {
+        for (int i = 0; i < 5; ++i) {
+            if (ticketType[i] == ticket)
+                return (i + 1) * 1000;
+        }
+        return -1;
+    }
 
-   // Takes an array and an element as parameter and adds the element
-   // to the array.
-   public int[] addElement(int[] a, int e) {
-	   a  = Arrays.copyOf(a, a.length + 1);
-	   a[a.length - 1] = e;
-	   return a;
-   }
+    // Takes an array and an element as parameter and adds the element
+    // to the array.
+    public int[] addElement(int[] a, int e) {
+       a  = Arrays.copyOf(a, a.length + 1);
+       a[a.length - 1] = e;
+       return a;
+    }
 
-   // Generates all possible moves(encoded form) for a player given a location.
-   private void generateMoves(Colour colour, int location) {
-	   int[] generatedMoves = new int[2];
-	   int player = encodeColour(colour);
-	   int normalTicket = 0;
-	   int secretTicket = encodeTicket(Ticket.Secret);
-	   int normalMove = 0;
-	   int secretMove = 0;
+    // Generates all possible moves(encoded form) for a player given a location.
+    private void generateMoves(Colour colour, int location) {
+       int[] generatedMoves = new int[2];
+       int player = encodeColour(colour);
+       int normalTicket = 0;
+       int secretTicket = encodeTicket(Ticket.Secret);
+       int normalMove = 0;
+       int secretMove = 0;
        Node<Integer> nodeLocation = graph.getNode(location);
        for (Edge<Integer, Transport> e : graph.getEdgesFrom(nodeLocation)) {
            normalTicket = encodeTicket(Ticket.fromTransport(e.getData()));
-		   normalMove = player + normalTicket + e.getTarget().getIndex();
-		   generatedMoves = addElement(generatedMoves, normalMove);
+    	   normalMove = player + normalTicket + e.getTarget().getIndex();
+    	   generatedMoves = addElement(generatedMoves, normalMove);
            if (colour == Colour.Black) {
-			   secretMove = player + secretTicket + e.getTarget().getIndex();
-			   generatedMoves = addElement(generatedMoves, secretMove);
-			   generateDoubleMoves(player, e, normalMove, generatedMoves);
-			   generateDoubleMoves(player, e, secretMove, generatedMoves);
-		   }
+    		   secretMove = player + secretTicket + e.getTarget().getIndex();
+    		   generatedMoves = addElement(generatedMoves, secretMove);
+    		   generateDoubleMoves(player, e, normalMove, generatedMoves);
+    		   generateDoubleMoves(player, e, secretMove, generatedMoves);
+    	   }
     	}
     }
 
-   // Generates all double moves given a player, previous edge and previous move.
-   // Double moves are two single moves concatenated.
-   private void generateDoubleMoves(int player, Edge previousEdge, int movePrevious, int[] generatedMoves) {
-	   int normalTicket = 0;
- 	   int secretTicket = encodeTicket(Ticket.Secret);
- 	   int normalMove = 0;
-	   int secretMove = 0;
-	   int normalDouble = 0;
-	   int secretDouble = 0;
+    // Generates all double moves given a player, previous edge and previous move.
+    // Double moves are two single moves concatenated.
+    private void generateDoubleMoves(int player, Edge previousEdge, int movePrevious, int[] generatedMoves) {
+       int normalTicket = 0;
+    	   int secretTicket = encodeTicket(Ticket.Secret);
+    	   int normalMove = 0;
+       int secretMove = 0;
+       int normalDouble = 0;
+       int secretDouble = 0;
        Integer middle = (Integer) previousEdge.getTarget().getIndex();
        Node<Integer> nodeLocation = graph.getNode(middle);
        for (Edge<Integer, Transport> e : graph.getEdgesFrom(nodeLocation)) {
            normalTicket = encodeTicket(Ticket.fromTransport(e.getData()));
-		   normalMove = player + normalTicket + e.getTarget().getIndex();
-		   normalDouble = movePrevious * 100000 + normalMove;
-		   generatedMoves = addElement(generatedMoves, normalDouble);
-		   secretMove = player + secretTicket + e.getTarget().getIndex();
-		   secretDouble = movePrevious * 100000 + secretMove;
-		   generatedMoves = addElement(generatedMoves, secretDouble);
+    	   normalMove = player + normalTicket + e.getTarget().getIndex();
+    	   normalDouble = movePrevious * 100000 + normalMove;
+    	   generatedMoves = addElement(generatedMoves, normalDouble);
+    	   secretMove = player + secretTicket + e.getTarget().getIndex();
+    	   secretDouble = movePrevious * 100000 + secretMove;
+    	   generatedMoves = addElement(generatedMoves, secretDouble);
        }
-   }
+    }
 }
