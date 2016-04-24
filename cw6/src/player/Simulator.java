@@ -16,6 +16,12 @@ public class Simulator extends ScotlandYard {
     private int distancesByTickets[][][][][];
     private int simulatedMoves;
     private boolean occupiedNodes[];
+    ArrayList<HashSet<Integer>> mrXNewLocations = new ArrayList<HashSet<Integer>>();
+
+    private static Ticket TAXI = Ticket.fromTransport(Transport.Taxi);
+    private static Ticket BUS = Ticket.fromTransport(Transport.Bus);
+    private static Ticket UG = Ticket.fromTransport(Transport.Underground);
+    private static MoveTicket DUMMYMOVE = MoveTicket.instance(Colour.Black, Ticket.Taxi, 42);
 
     private final static Colour[] playerColours = {
         Colour.Black,
@@ -70,8 +76,9 @@ public class Simulator extends ScotlandYard {
         this.mrXPossibleLocations.add(35);
         this.distancesByTickets = distancesByTickets;
         this.occupiedNodes = new boolean[201];
-        System.out.println("\nPRINTING SOME DISTANCE");
-        System.out.println(this.distancesByTickets[1][2][3][2][1]);
+        for (int i = 0; i < 10; ++i) {
+            mrXNewLocations.add(new HashSet<Integer>());
+        }
 
         for (Colour p : playerColours) {
             Map<Ticket, Integer> tickets = new HashMap<Ticket, Integer>();
@@ -192,20 +199,20 @@ public class Simulator extends ScotlandYard {
         if (move instanceof MovePass) {
             return;
         } else {
-            System.out.println("\nI am updating now!");
-            System.out.println("Printing old locations:");
-            for (Integer loc : this.mrXPossibleLocations) {
-                System.out.print(loc + ", ");
-            }
-            System.out.println("\n");
+            // System.out.println("\nI am updating now!");
+            // System.out.println("Printing old locations:");
+            // for (Integer loc : this.mrXPossibleLocations) {
+            //     System.out.print(loc + ", ");
+            // }
+            // System.out.println("\n");
             updatePossibleLocations(move, this.mrXPossibleLocations);
-            System.out.println("Printing updated locations:");
-            for (Integer loc : this.mrXPossibleLocations) {
-                System.out.print(loc + ", ");
-            }
-            System.out.println("\n");
+            // System.out.println("Printing updated locations:");
+            // for (Integer loc : this.mrXPossibleLocations) {
+            //     System.out.print(loc + ", ");
+            // }
+            // System.out.println("\n");
             play(move);
-            System.out.println("\nCurrent Round: " + currentRound + "\n");
+            //System.out.println("\nCurrent Round: " + currentRound + "\n");
         }
     }
 
@@ -227,36 +234,41 @@ public class Simulator extends ScotlandYard {
             //mrXLocation = location;
             getPlayer(Colour.Black).setLocation(location);
         }
-        if (isGameOver()) {
-            if (getWinningPlayers().size() == 1) {
-                currentConfigurationScore[0] = 99999;// Mr.X won
-            } else {
-                currentConfigurationScore[0] = 0;// detectives won
-            }
-            return MoveTicket.instance(player, Ticket.Taxi, 69);
-            //int doesn't even matter
-        }
+        // if (isGameOver()) {
+        //     if (getWinningPlayers().size() == 1) {
+        //         currentConfigurationScore[0] = 99999;// Mr.X won
+        //     } else {
+        //         currentConfigurationScore[0] = 0;// detectives won
+        //     }
+        //     return MoveTicket.instance(player, Ticket.Taxi, 69);
+        //     //int doesn't even matter
+        // }
         // System.out.println("\nAfter calling minimax, we have players: ");
         // for (PlayerData p : players) {
         //     System.out.println("\n");
         //     System.out.println(p.getColour());
         //     System.out.println(p.getLocation());
         // }
-        if (level == 0) {
-            for (PlayerData p : players) {
-                System.out.println("player: " + p.getColour() + " location: " + p.getLocation());
-            }
+        // if (level == 0) {
+        //     for (PlayerData p : players) {
+        //         System.out.println("player: " + p.getColour() + " location: " + p.getLocation());
+        //     }
+        // }
+        currentConfigurationScore[0] = getNodeRank(location) * 100;
+        if (currentConfigurationScore[0] == 0) {
+            return DUMMYMOVE;
         }
-        List<Move> moves = validMoves(player);
         Integer bestScore = 0;
         if ((level == 8) || (currentRound == 22 && player == Colour.Black)) {
-            currentConfigurationScore[0] = getNodeRank(location) * 100;
+            // if (currentConfigurationScore[0] != 0) {
             currentConfigurationScore[0] += mrXOldLocations.size();
-            System.out.print("\nConfiguration updated ");
-            System.out.println(currentConfigurationScore[0]);
-            return MoveTicket.instance(player, Ticket.Taxi, 69);
+            // }
+            // System.out.print("\nConfiguration updated ");
+            // System.out.println(currentConfigurationScore[0]);
+            return DUMMYMOVE;
         }
-        Move bestMove = MoveTicket.instance(player, Ticket.Taxi, 69);
+        List<Move> moves = validMoves(player);
+        Move bestMove = DUMMYMOVE;
         int[] nextScore = new int[1];
         nextScore[0] = 0;
         if (player == Colour.Black)
@@ -264,7 +276,6 @@ public class Simulator extends ScotlandYard {
         else
             bestScore = Integer.MAX_VALUE;
         //System.out.println("\nbest score before: " + bestScore);
-        HashSet<Integer> mrXNewLocations = new HashSet<Integer>();
         for (Move move : moves) {
             if (move instanceof MoveDouble) continue;
             if (move instanceof MovePass) continue;
@@ -272,9 +283,9 @@ public class Simulator extends ScotlandYard {
 
             if (currentMove.ticket == Ticket.Secret) continue;
 
-            mrXNewLocations.clear();
-            mrXNewLocations.addAll(mrXOldLocations);
-            updatePossibleLocations(move, mrXNewLocations);
+            mrXNewLocations.get(level).clear();
+            mrXNewLocations.get(level).addAll(mrXOldLocations);
+            updatePossibleLocations(move, mrXNewLocations.get(level));
             play(move);
             //System.out.println("Moving to " + currentMove.target);
             nextPlayer();
@@ -283,7 +294,7 @@ public class Simulator extends ScotlandYard {
                     currentPlayer.getLocation(),
                     level + 1,
                     nextScore,
-                    mrXNewLocations);
+                    mrXNewLocations.get(level));
             /*************************************/
             if (player == Colour.Black) {
                 if (bestScore < nextScore[0]) {
@@ -307,96 +318,6 @@ public class Simulator extends ScotlandYard {
         return bestMove;
     }
 
-	public Move getMrXMove(int location, List<Move> moves) {
-		System.out.println("Getting intelligent move");
-		/*for each accesible node in moves compute score and choose best*/
-		int destination = 0;
-		int bestScore = -10;
-		int destinationScore = 0;
-		Move bestMove = moves.get(0);
-        int currentNodeRank = getNodeRank(location);
-		//List<Transport> allTransports = new ArrayList<Transport>();
-		// 0 Taxi, 1 Bus, 2 Underground
-
-		/*int[] allTransports = new int[3];
-		for (Move m : moves) {
-			if (m instanceof MoveTicket) {
-                destination = setDestination((MoveTicket) m);
-                MoveTicket move = (MoveTicket) m;
-    			switch (move.ticket) {
-    				case Taxi:
-    					allTransports[0]++;
-    					break;
-    				case Bus:
-    					allTransports[1]++;
-    					break;
-    				case Underground:
-    					allTransports[2]++;
-    					break;
-                    default:
-                        break;
-    			}
-            } else if (m instanceof MoveDouble) {
-                destination = setDestination((MoveDouble) m);
-                MoveDouble move = (MoveDouble) m;
-            }
-			else continue;
-
-		}
-		Ticket bestTicket = Ticket.Taxi;
-		int indexTransport = 0;
-		if (allTransports[0] < allTransports[1]) {
-			indexTransport = 1;
-			bestTicket = Ticket.Bus;
-		}
-		if (allTransports[indexTransport] < allTransports[2]) {
-			indexTransport = 2;
-			bestTicket = Ticket.Underground;
-		}
-        */
-	    for (Move currentMove : moves) {
-			MoveTicket move = MoveTicket.instance(Colour.Black, Ticket.Bus, 69);//random init
-			if (currentMove instanceof MoveTicket) {
-				destination = setDestination((MoveTicket) currentMove);
-				move = (MoveTicket) currentMove;
-			} else {
-                destination = setDestination((MoveDouble) currentMove);
-            }
-            if (currentNodeRank > 4) {
-                List<Move> mrXMoves = graph.generateMoves(Colour.Black, location);
-                List<Move> possible = new ArrayList<Move>();
-                for (Move a : mrXMoves) {
-                    destinationScore = getNodeRank(destination);
-                    if (a instanceof MoveTicket) {
-                        MoveTicket m = (MoveTicket) a;
-                        if (m.ticket == Ticket.Taxi && destinationScore < currentNodeRank) {
-                            possible.add(m);
-                        }
-                        //newLocations.add(move.target);
-                        //System.out.println(move.target);
-                    }
-                }
-                if (possible.size() > 0) {
-                    bestMove = possible.get(0);
-                } else {
-                    bestMove = moves.get(0);
-                }
-            } else {
-        		destinationScore = getNodeRank(destination);
-        		if (bestScore < destinationScore) {
-        			bestScore = destinationScore;
-        			bestMove = currentMove;
-        		} else if (bestScore == destinationScore) {
-        			// if (move.ticket == bestTicket) {
-        			// 	bestMove = m;
-        			// }
-        		}
-            }
-		}
-		return bestMove;
-	}
-
-
     // get distance to closest detective; from detective to mr X.
 	private int getNodeRank(int location) {
 		// Dijkstra dijkstra = new Dijkstra(graphFilename);
@@ -416,12 +337,12 @@ public class Simulator extends ScotlandYard {
 			// System.out.println("Tickets UG: " + tickets.get(Transport.Underground));
 			// System.out.println("");
 
-            //route = dijkstra.getRoute(getPlayerLocation(p), location, tickets, p);
+            // route = dijkstra.getRoute(getPlayerLocation(p), location, tickets, p);
             score = distancesByTickets[getPlayerLocation(p)]
                                       [location]
-                                      [getPlayerTickets(p, Ticket.fromTransport(Transport.Taxi))]
-                                      [getPlayerTickets(p, Ticket.fromTransport(Transport.Bus))]
-                                      [getPlayerTickets(p, Ticket.fromTransport(Transport.Underground))];
+                                      [getPlayerTickets(p, TAXI)]
+                                      [getPlayerTickets(p, BUS)]
+                                      [getPlayerTickets(p, UG)];
             bestScore = Math.min(bestScore, score);
 		}
 		return bestScore;
