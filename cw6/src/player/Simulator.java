@@ -201,7 +201,7 @@ public class Simulator extends ScotlandYard {
                 System.out.print(loc + ", ");
             }
             System.out.println("\n");
-            updatePossibleLocations(move, this.mrXPossibleLocations);
+            updatePossibleLocations(encodeMove(move), this.mrXPossibleLocations);
             System.out.println("Printing updated locations:");
             for (Integer loc : this.mrXPossibleLocations) {
                 System.out.print(loc + ", ");
@@ -251,12 +251,15 @@ public class Simulator extends ScotlandYard {
         //         System.out.println("player: " + p.getColour() + " location: " + p.getLocation());
         //     }
         // }
-        currentConfigurationScore[0] = getNodeRank(location) * 100;
+        currentConfigurationScore[0] = getNodeRank(getPlayer(Colour.Black).getLocation()) * 100;
+        /* if the minimum distance to a detective is zero, it means that Mr X
+         * was caught so we can end this branch of the minimax
+         */
         if (currentConfigurationScore[0] == 0) {
             return DUMMYMOVE;
         }
         Integer bestScore = 0;
-        if ((level == 11) || (currentRound == 22 && player == Colour.Black)) {
+        if ((level == 1) || (currentRound == 22 && player == Colour.Black)) {
             // if (currentConfigurationScore[0] != 0) {
             currentConfigurationScore[0] += mrXOldLocations.size();
             // }
@@ -265,7 +268,7 @@ public class Simulator extends ScotlandYard {
             return DUMMYMOVE;
         }
         List<Move> moves = validMoves(player);
-        Move bestMove = DUMMYMOVE;
+        MoveTicket bestMove = DUMMYMOVE;
         int[] nextScore = new int[1];
         nextScore[0] = 0;
         if (player == Colour.Black)
@@ -275,24 +278,36 @@ public class Simulator extends ScotlandYard {
         HashSet<Integer> mrXNewLocations = new HashSet<Integer>();
         for (Move move : moves) {
             if (move instanceof MoveDouble) continue;
+            //if (move instanceof MoveTicket) continue;
             if (move instanceof MovePass) continue;
             MoveTicket currentMove = (MoveTicket) move;
 
-            if (currentMove.ticket == Ticket.Secret) continue;
-            if (player == Colour.Black) {
-                if (bestScore > previousScore) {
-                    currentConfigurationScore[0] = bestScore;
-                    return bestMove;
-                }
-            } else {
-                if (bestScore < previousScore) {
-                    currentConfigurationScore[0] = bestScore;
-                    return bestMove;
-                }
-            }
+            //if (currentMove.ticket == Ticket.Secret) continue;
+            /********************************/
+            /**********TREE PRUNING**********/
+            /********************************/
+            // if (player == Colour.Black) {
+            //     if (bestScore > previousScore) {
+            //         System.out.println("\nPruning the tree.");
+            //         System.out.println("Updating best move.");
+            //         System.out.println("bestScore: " + bestScore + " previousScore: " + previousScore);
+            //         System.out.println("Target: " + currentMove.target);
+            //         currentConfigurationScore[0] = bestScore;
+            //         return bestMove;
+            //     }
+            // } else {
+            //     if (bestScore < previousScore) {
+            //         System.out.println("\nPruning the tree.");
+            //         System.out.println("Updating best move.");
+            //         System.out.println("bestScore: " + bestScore + " previousScore: " + previousScore);
+            //         System.out.println("Target: " + currentMove.target);
+            //         currentConfigurationScore[0] = bestScore;
+            //         return bestMove;
+            //     }
+            // }
             mrXNewLocations.clear();
             mrXNewLocations.addAll(mrXOldLocations);
-            updatePossibleLocations(move, mrXNewLocations);
+            updatePossibleLocations(encodeMove(move), mrXNewLocations);
             play(move);
             //System.out.println("Moving to " + currentMove.target);
             nextPlayer();
@@ -303,54 +318,65 @@ public class Simulator extends ScotlandYard {
                     nextScore,
                     bestScore,
                     mrXNewLocations);
+
+            System.out.print("nextScore: " +nextScore[0]);
+            System.out.println("Target: " + currentMove.target);
             /*************************************/
             if (player == Colour.Black) {
                 if (bestScore < nextScore[0]) {
-                    // System.out.println("\nUpdating best move.");
-                    // System.out.println("bestScore: " + bestScore + " nextScore: " + nextScore[0]);
-                    // System.out.println(currentMove.target);
+                    if (level == 4) {
+                        System.out.println("\nUpdating best move.");
+                        System.out.println("bestScore: " + bestScore + " nextScore: " + nextScore[0]);
+                        System.out.println("Target: " + currentMove.target);
+                    }
                     bestScore = nextScore[0];
-                    bestMove = move;
+                    bestMove = (MoveTicket) move;
                 }
             } else {
                 if (bestScore > nextScore[0]) {
+                    if (level == 4) {
+                        System.out.println("\nUpdating best move.");
+                        System.out.println("bestScore: " + bestScore + " nextScore: " + nextScore[0]);
+                        System.out.println("Target: " + currentMove.target);
+                    }
                     bestScore = nextScore[0];
-                    bestMove = move;
+                    bestMove = (MoveTicket) move;
                 }
             }
             previousPlayer();
             reversePlay(move, location);
         }
-        currentConfigurationScore[0] = bestScore;
         //System.out.println("\nbest score after: " + bestScore);
         return bestMove;
     }
 
     // get distance to closest detective; from detective to mr X.
 	private int getNodeRank(int location) {
-		// Dijkstra dijkstra = new Dijkstra(graphFilename);
-		// List<Integer> route = new ArrayList<Integer>();
+		Dijkstra dijkstra = new Dijkstra(graphFilename);
+		List<Integer> route = new ArrayList<Integer>();
 		int bestScore = 666013;
         int score = 0;
 		for (Colour p : playerColours){
 			if (p == Colour.Black) continue;
-			// Map<Transport, Integer> tickets = new HashMap<Transport, Integer>();
-			// tickets.put(Transport.Bus, getPlayerTickets(p, Ticket.fromTransport(Transport.Bus)));
-			// tickets.put(Transport.Taxi, getPlayerTickets(p, Ticket.fromTransport(Transport.Taxi)));
-			// tickets.put(Transport.Underground, getPlayerTickets(p, Ticket.fromTransport(Transport.Underground)));
-			// System.out.println("Detective Location: " + view.getPlayerLocation(p));
+			Map<Transport, Integer> tickets = new HashMap<Transport, Integer>();
+			tickets.put(Transport.Bus, getPlayerTickets(p, Ticket.fromTransport(Transport.Bus)));
+			tickets.put(Transport.Taxi, getPlayerTickets(p, Ticket.fromTransport(Transport.Taxi)));
+			tickets.put(Transport.Underground, getPlayerTickets(p, Ticket.fromTransport(Transport.Underground)));
+            // System.out.println("Detective Location: " + view.getPlayerLocation(p));
 			// System.out.println("Destination: " + location);
 			// System.out.println("Tickets Bus: " + tickets.get(Transport.Bus));
 			// System.out.println("Tickets Taxi: " + tickets.get(Transport.Taxi));
 			// System.out.println("Tickets UG: " + tickets.get(Transport.Underground));
 			// System.out.println("");
 
-            // route = dijkstra.getRoute(getPlayerLocation(p), location, tickets, p);
+            route = dijkstra.getRoute(getPlayerLocation(p), location, tickets, p);
             score = distancesByTickets[getPlayerLocation(p)]
                                       [location]
                                       [getPlayerTickets(p, TAXI)]
                                       [getPlayerTickets(p, BUS)]
                                       [getPlayerTickets(p, UG)];
+            System.out.println("From " + p + " at " + getPlayerLocation(p) + " to Black at " + location + " the distance is " + score);
+            System.out.println("Dijkstra score: " + route.size());
             bestScore = Math.min(bestScore, score);
 		}
 		return bestScore;
@@ -377,8 +403,7 @@ public class Simulator extends ScotlandYard {
     //     }
     // }
 
-    private void updatePossibleLocations(Move move, HashSet<Integer> locations) {
-		int moveMade = encodeMove(move);
+    private void updatePossibleLocations(int moveMade, HashSet<Integer> locations) {
         if (getCurrentPlayer() == Colour.Black && rounds.get(view.getRound()) == true) {
             //clearing global list of Mr X possible locations
             mrXLocation = view.getPlayerLocation(Colour.Black);
@@ -386,8 +411,8 @@ public class Simulator extends ScotlandYard {
             locations.add(mrXLocation);
             // System.out.println("\nPOSSIBLE LOCATIONS RESTARTED");
         } else {
-            if (move.colour == Colour.Black) {
-                MoveTicket movePrint = (MoveTicket) move;
+            // moveMade.colour == Colour.Black
+            if ((moveMade / 10000) % 10 == 1) {
                 // System.out.println("\nI am black!");
                 HashSet<Integer> newLocations = new HashSet<Integer>();
                 // System.out.println("I have " + newLocations.size() + "locations. And I should have: " + locations.size());
