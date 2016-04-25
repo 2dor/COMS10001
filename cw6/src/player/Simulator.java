@@ -16,6 +16,8 @@ public class Simulator extends ScotlandYard {
     private int distancesByTickets[][][][][];
     private int simulatedMoves;
     private boolean occupiedNodes[];
+	private int[] movesGenerate;
+	private int[] movesValid;
 
     private static Ticket TAXI = Ticket.fromTransport(Transport.Taxi);
     private static Ticket BUS = Ticket.fromTransport(Transport.Bus);
@@ -75,6 +77,8 @@ public class Simulator extends ScotlandYard {
         this.mrXPossibleLocations.add(35);
         this.distancesByTickets = distancesByTickets;
         this.occupiedNodes = new boolean[201];
+		this.movesGenerate = new int[500];
+		this.movesValid = new int[500];
 
         for (Colour p : playerColours) {
             Map<Ticket, Integer> tickets = new HashMap<Ticket, Integer>();
@@ -384,7 +388,7 @@ public class Simulator extends ScotlandYard {
 
     // private void filterMoves(int m, int moveMade, HashSet<Integer> locations) {
 	// 	// checks if two colour and ticket match and if so it adds the location
-	// 	// to the possibleMoves. Modulo quicker then parsing!
+	// 	// to the movesGenerate. Modulo quicker then parsing!
 	// 	if (moveMade - m > -201 || moveMade - m < 201) {
 	// 		locations.add(m % 1000)
 	// 	}
@@ -422,15 +426,15 @@ public class Simulator extends ScotlandYard {
                 // }
                 // System.out.println();
                 for (Integer location : locations) {
-                    int[] possibleMoves = generateMoves(Colour.Black, location);
-                    //possibleMoves = graph.generateMoves(Colour.Black, location);
+                    generateMoves(Colour.Black, location);
+                    //movesGenerate = graph.generateMoves(Colour.Black, location);
                     int m = 0;
-                    for (int i = 1; i <= possibleMoves[0]; ++i) {
-                        m = possibleMoves[i];
+                    for (int i = 1; i <= movesGenerate[0]; ++i) {
+                        m = movesGenerate[i];
 						// if both moves are single
                         if (m < 100000 && moveMade < 100000) {
 							// checks if colours and tickets match and if so it adds the location
-							// to the possibleMoves. Modulo quicker then parsing!
+							// to the movesGenerate. Modulo quicker then parsing!
                             int destination = getDestination(m);
 							if (Math.abs(moveMade - m) < 201 && !occupiedNodes[destination]) {
                                 // System.out.print("\nColour: " + movePrint.colour);
@@ -490,6 +494,10 @@ public class Simulator extends ScotlandYard {
         return move - (move / 1000) * 1000;
     }
 
+	private int getSingleTicket(int move) {
+		return (move - (move / 10000) * 10000) - getDestination(move);
+	}
+
 
    //  public int[] validMoves(Colour player) {
    //     int[] listOfValidMoves = new int[30];
@@ -535,9 +543,10 @@ public class Simulator extends ScotlandYard {
         return -1;
     }
 
-	// public int decodeTicket(int move) {
-	//
-	// }
+	public Ticket decodeTicket(int move) {
+		int ticket = getSingleTicket(move) / 1000;
+		return ticketType[ticket - 1];
+	}
 
 	public int encodeMove(Move move) {
 		if (move instanceof MoveTicket) {
@@ -575,8 +584,8 @@ public class Simulator extends ScotlandYard {
     }
 
     // Generates all possible moves(encoded form) for a player given a location.
-    private int[] generateMoves(Colour colour, int location) {
-        int[] generatedMoves = new int[500];
+    private void generateMoves(Colour colour, int location) {
+		movesGenerate[0] = 0;
         int player = encodeColour(colour);
         int normalTicket = 0;
         int secretTicket = encodeTicket(Ticket.Secret);
@@ -589,25 +598,24 @@ public class Simulator extends ScotlandYard {
            normalTicket = encodeTicket(Ticket.fromTransport(e.getData()));
            normalMove = player + normalTicket + e.getTarget().getIndex();
            //System.out.println("Adding normalMove: " + normalMove);
-           addElementToArray(generatedMoves, normalMove);
+           addElementToArray(movesGenerate, normalMove);
            if (colour == Colour.Black) {
         	   secretMove = player + secretTicket + e.getTarget().getIndex();
-        	   addElementToArray(generatedMoves, secretMove);
-        	   generateDoubleMoves(player, e, normalMove, generatedMoves);
-        	   generateDoubleMoves(player, e, secretMove, generatedMoves);
+        	   addElementToArray(movesGenerate, secretMove);
+        	   generateDoubleMoves(player, e, normalMove, movesGenerate);
+        	   generateDoubleMoves(player, e, secretMove, movesGenerate);
            }
         }
         // System.out.println("All generated moves: ");
-        // for (int i = 0; i < generatedMoves[0]; ++i) {
-        //     System.out.print(generatedMoves[i] + " ");
+        // for (int i = 0; i < movesGenerate[0]; ++i) {
+        //     System.out.print(movesGenerate[i] + " ");
         // }
         // System.out.println("");
-        return generatedMoves;
     }
 
     // Generates all double moves given a player, previous edge and previous move.
     // Double moves are two single moves concatenated.
-    private void generateDoubleMoves(int player, Edge previousEdge, int movePrevious, int[] generatedMoves) {
+    private void generateDoubleMoves(int player, Edge previousEdge, int movePrevious, int[] movesGenerate) {
         int normalTicket = 0;
         int secretTicket = encodeTicket(Ticket.Secret);
         int normalMove = 0;
@@ -620,15 +628,44 @@ public class Simulator extends ScotlandYard {
            normalTicket = encodeTicket(Ticket.fromTransport(e.getData()));
            normalMove = player + normalTicket + e.getTarget().getIndex();
            normalDouble = movePrevious * 100000 + normalMove;
-           addElementToArray(generatedMoves, normalDouble);
+           addElementToArray(movesGenerate, normalDouble);
            secretMove = player + secretTicket + e.getTarget().getIndex();
            secretDouble = movePrevious * 100000 + secretMove;
-           addElementToArray(generatedMoves, secretDouble);
+           addElementToArray(movesGenerate, secretDouble);
         }
         // System.out.println("All double generated moves: ");
-        // for (int i = 0; i < generatedMoves[0]; ++i) {
-        //    System.out.print(generatedMoves[i] + " ");
+        // for (int i = 0; i < movesGenerate[0]; ++i) {
+        //    System.out.print(movesGenerate[i] + " ");
         // }
         // System.out.println("");
     }
+
+	public boolean hasTickets(PlayerData player, Ticket ticket) {
+        if (player.getTickets().get(ticket) == 0)
+            return false;
+        return true;
+    }
+
+	public void validMovesNew(Colour player) {
+		movesValid[0] = 0;
+        generateMoves(player, getPlayerLocation(player));
+		movesValid = movesGenerate;
+		filterMovesValid(player);
+        if(movesValid[0] == 0 && player != Colour.Black){
+            addElementToArray(movesValid, encodeColour(player));
+        }
+    }
+
+	public void filterMovesValid(Colour colour) {
+		PlayerData player = getPlayer(colour);
+		for (int i = 1; i <= movesValid[0]; ++i) {
+			if (movesValid[i] < 100000) {
+				int destination = getDestination(movesValid[i]);
+				Ticket ticket = decodeTicket(movesValid[i]);
+				if (!hasTickets(player, ticket) || occupiedNodes[destination]) {
+
+				}
+			}
+		}
+	}
 }
