@@ -356,21 +356,29 @@ public class Simulator extends ScotlandYard {
 		return bestScore;
 	}
 
-    private void filterMoves(MoveTicket moveSingle, MoveTicket moveMade, HashSet<Integer> locations) {
-        if (moveSingle.ticket == moveMade.ticket && !occupiedNodes[moveSingle.target]){
-            locations.add(moveSingle.target);
-        }
-    }
-
-    private void filterMoves(MoveDouble moveDouble, MoveDouble moveMade, HashSet<Integer> locations) {
-        if (moveDouble.move1.ticket == moveMade.move1.ticket && !occupiedNodes[moveDouble.move1.target]){
-            if (moveDouble.move2.ticket == moveMade.move2.ticket && !occupiedNodes[moveDouble.move2.target]){
-                locations.add(moveDouble.move2.target);
-            }
-        }
-    }
+    // private void filterMoves(int m, int moveMade, HashSet<Integer> locations) {
+	// 	// checks if two colour and ticket match and if so it adds the location
+	// 	// to the possibleMoves. Modulo quicker then parsing!
+	// 	if (moveMade - m > -201 || moveMade - m < 201) {
+	// 		locations.add(m % 1000)
+	// 	}
+    // }
+	//
+	// public static int firstDigit(int n) {
+ // 		while (n < -9 || 9 < n) n /= 10;
+ //  		return Math.abs(n);
+	// }
+	//
+    // private void filterMoves(MoveDouble moveDouble, MoveDouble moveMade, HashSet<Integer> locations) {
+    //     if (moveDouble.move1.ticket == moveMade.move1.ticket && !occupiedNodes[moveDouble.move1.target]){
+    //         if (moveDouble.move2.ticket == moveMade.move2.ticket && !occupiedNodes[moveDouble.move2.target]){
+    //             locations.add(moveDouble.move2.target);
+    //         }
+    //     }
+    // }
 
     private void updatePossibleLocations(Move moveMade, HashSet<Integer> locations) {
+		int moveEncoded = encodeMove(moveMade);
         if (getCurrentPlayer() == Colour.Black && rounds.get(view.getRound()) == true) {
             // clearing global list of Mr X possible locations
             mrXLocation = view.getPlayerLocation(Colour.Black);
@@ -380,7 +388,7 @@ public class Simulator extends ScotlandYard {
         } else {
             if (moveMade.colour == Colour.Black) {
                 // System.out.println("\nI am black!");
-                List<Move> possibleMoves = new ArrayList<Move>();
+                //List<Move> possibleMoves = new ArrayList<Move>();
                 HashSet<Integer> newLocations = new HashSet<Integer>();
                 // System.out.println("I have " + newLocations.size() + "locations. And I should have: " + locations.size());
                 // System.out.println("Printing possible locations:");
@@ -389,17 +397,21 @@ public class Simulator extends ScotlandYard {
                 // }
                 // System.out.println();
                 for (Integer location : locations) {
-                    possibleMoves = graph.generateMoves(Colour.Black, location);
-                    for (Move m : possibleMoves) {
-                        if (m instanceof MoveTicket && moveMade instanceof MoveTicket) {
-                            MoveTicket moveSingle = (MoveTicket) m;
-                            MoveTicket move = (MoveTicket) moveMade;
-                            filterMoves(moveSingle, move, newLocations);
-                        } else if (m instanceof MoveDouble && moveMade instanceof MoveDouble) {
-                            MoveDouble moveDouble = (MoveDouble) m;
-                            MoveDouble move = (MoveDouble) moveMade;
-                            filterMoves(moveDouble, move, newLocations);
-                        }
+					int[] possibleMoves = generateMoves(Colour.Black, location);
+                    //possibleMoves = graph.generateMoves(Colour.Black, location);
+                    for (int m : possibleMoves) {
+						// if both moves are single
+                        if (m < 100000 && moveEncoded < 100000) {
+							// checks if colours and tickets match and if so it adds the location
+							// to the possibleMoves. Modulo quicker then parsing!
+							if (moveEncoded - m > -201 || moveEncoded - m < 201) {
+								newLocations.add(m % 1000)
+							}
+						// if both moves are double
+                        } else if (m > 100000 && moveEncoded > 100000) {
+							//Probably parse and separate moves and then apply
+							//technique above.
+						}
                     }
                 }
                 locations.clear();
@@ -477,6 +489,38 @@ public class Simulator extends ScotlandYard {
         return -1;
     }
 
+	// public int decodeTicket(int move) {
+	//
+	// }
+
+	public int encodeMove(Move move) {
+		if (move instanceof MoveTicket) {
+			MoveTicket moveSingle = (MoveTicket) move;
+			return encodeMove(moveSingle);
+		} else if (move instanceof MoveDouble) {
+			MoveDouble moveDouble = (MoveDouble) move;
+			return encodeMove(moveDouble);
+    	} else if (move instanceof MovePass) {
+			// If move pass then return move with colour and
+			// 0's for ticket and location.
+			MovePass movePass = (MovePass) move;
+			return encodeColour(movePass.colour);
+		}
+		return -1;
+	}
+
+	public int encodeMove(MoveTicket move) {
+		int player = encodeColour(move.colour);
+		int ticket = encodeTicket(move.ticket);
+		return player + ticket + move.target;
+	}
+
+	public int encodeMove(MoveDouble move) {
+		int move1 = encodeMove(move.move1);
+		int move2 = encodeMove(move.move2);
+		return move1 * 100000 + move2;
+	}
+
     // Takes an array and an element as parameter and adds the element
     // to the array.
     public int[] addElement(int[] a, int e) {
@@ -486,7 +530,7 @@ public class Simulator extends ScotlandYard {
     }
 
     // Generates all possible moves(encoded form) for a player given a location.
-    private void generateMoves(Colour colour, int location) {
+    private int[] generateMoves(Colour colour, int location) {
        int[] generatedMoves = new int[2];
        int player = encodeColour(colour);
        int normalTicket = 0;
@@ -505,6 +549,7 @@ public class Simulator extends ScotlandYard {
     		   generateDoubleMoves(player, e, secretMove, generatedMoves);
     	   }
     	}
+		return generatedMoves;
     }
 
     // Generates all double moves given a player, previous edge and previous move.
