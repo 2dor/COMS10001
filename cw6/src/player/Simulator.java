@@ -498,6 +498,29 @@ public class Simulator extends ScotlandYard {
 		return ticketType[ticket - 1];
 	}
 
+	public Move decodeMove(int move) {
+		if (isMoveTicket(move)) {
+			Move single = decodeMoveTicket(move);
+			return single;
+		} else if (isMoveDouble(move)) {
+			int m1 = move / 100000;
+			int m2 = move - m1 * 100000;
+			MoveTicket move1 = decodeMoveTicket(m1);
+			MoveTicket move2 = decodeMoveTicket(m2);
+			Move dbl = MoveDouble.instance(decodeColour(move), move1, move2);
+			return dbl;
+		}
+		Move pass = MovePass.instance(decodeColour(move));
+		return pass;
+	}
+
+	public MoveTicket decodeMoveTicket(int move) {
+		return MoveTicket.instance(decodeColour(move),
+									 decodeTicket(move),
+									 decodeDestination(move));
+	}
+
+
 	public int encodeMove(Move move) {
 		if (move instanceof MoveTicket) {
 			MoveTicket moveSingle = (MoveTicket) move;
