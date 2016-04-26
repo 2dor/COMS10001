@@ -53,7 +53,10 @@ public class Dijkstra {
         Map<Node<Integer>, Double> distances = new HashMap<Node<Integer>, Double>();
         Map<Node<Integer>, Node<Integer>> previousNodes = new HashMap<Node<Integer>, Node<Integer>>();
         Node<Integer> currentNode = graph.getNode(start);
-
+        /* Initialise source with distance 0 and the rest of the nodes
+         * with distance POSITIVE_INFINITY
+         * Initialise unvisitedNodes with their respective PageRank
+         */
         for (Node<Integer> node : nodes) {
             if (!currentNode.getIndex().equals(node.getIndex())) {
                 distances.put(node, Double.POSITIVE_INFINITY);
@@ -73,6 +76,7 @@ public class Dijkstra {
             Node<Integer> m = minDistance(distances, unvisitedNodes);
             if (m == null) break;
             currentNode = m;
+            /* Stop when we reach the destination*/
             if (currentNode.getIndex().equals(destination)) break;
             unvisitedNodes.remove(currentNode);
 
@@ -113,7 +117,7 @@ public class Dijkstra {
             Node<Integer> neighbour = e.getTarget();
             if (unvisitedNodes.get(neighbour) != null) {
                 Transport route = e.getData();
-				if (player != Colour.Black && route == Transport.Boat) continue; // Detecties CUNT use boats
+				if (player != Colour.Black && route == Transport.Boat) continue; // Detectives cannot use boats
 				//System.out.println(e.getData());
                 Integer numTickets = tickets.get(route);
                 //Update distances
