@@ -49,23 +49,27 @@ public class Dijkstra {
 
         List<Node<Integer>> nodes = graph.getNodes();
         //Initialisation
-        Map<Node<Integer>, Double> unvisitedNodes = new HashMap<Node<Integer>, Double>();
-        Map<Node<Integer>, Double> distances = new HashMap<Node<Integer>, Double>();
+        Map<Node<Integer>, Integer> unvisitedNodes = new HashMap<Node<Integer>, Integer>();
+        Map<Node<Integer>, Integer> distances = new HashMap<Node<Integer>, Integer>();
         Map<Node<Integer>, Node<Integer>> previousNodes = new HashMap<Node<Integer>, Node<Integer>>();
         Node<Integer> currentNode = graph.getNode(start);
-        /* Initialise source with distance 0 and the rest of the nodes
+        Map<Node<Integer>, Map<Transport, Integer>> ticketsAtNode = new HashMap<Node<Integer>, HashMap<Transport, Integer>>();
+        /* Initialise source with distance 0.0 and the rest of the nodes
          * with distance POSITIVE_INFINITY
          * Initialise unvisitedNodes with their respective PageRank
          */
         for (Node<Integer> node : nodes) {
             if (!currentNode.getIndex().equals(node.getIndex())) {
-                distances.put(node, Double.POSITIVE_INFINITY);
+                distances.put(node, Integer.POSITIVE_INFINITY);
+                ticketsAtNode.put(node, new HashMap<Transport, Integer>());
             } else {
-                distances.put(node, 0.0);
+                distances.put(node, 0);
+                ticketsAtNode.put(node, new HashMap<Transport, Integer>(tickets));
             }
             Integer location = node.getIndex();
             try {
-                unvisitedNodes.put(node, (1/pageRank.getPageRank(location)));
+                //unvisitedNodes.put(node, (1/pageRank.getPageRank(location)));
+                unvisitedNodes.put(node, distances.get(node));
             } catch (Exception e) {
                 System.err.println(e);
             }
@@ -73,10 +77,11 @@ public class Dijkstra {
         }
         //Search through the graph
         while (unvisitedNodes.size() > 0) {
+            //TODO: modify minDistance() so it does not take the PageRank into account
             Node<Integer> m = minDistance(distances, unvisitedNodes);
             if (m == null) break;
             currentNode = m;
-            /* Stop when we reach the destination*/
+            /* Stop when we reach the destination */
             if (currentNode.getIndex().equals(destination)) break;
             unvisitedNodes.remove(currentNode);
 
@@ -103,29 +108,30 @@ public class Dijkstra {
     // that they moved from.
     // @param tickets the player tickets for different
     // routes.
-    private void step(Graph<Integer, Transport> graph, Map<Node<Integer>, Double> distances,
-                      Map<Node<Integer>, Double> unvisitedNodes,
+    private void step(Graph<Integer, Transport> graph, Map<Node<Integer>, Integer> distances,
+                      Map<Node<Integer>, Integer> unvisitedNodes,
                       Node<Integer> currentNode,
                       Map<Node<Integer>, Node<Integer>> previousNodes,
                       Map<Transport, Integer> tickets,
 					  Colour player) {
         List<Edge<Integer, Transport>> edges = graph.getEdgesFrom(currentNode);
-        Double currentDistance = distances.get(currentNode);
+        Integer currentDistance = distances.get(currentNode);
 		// System.out.println("Current node: "+currentNode.getIndex());
         for (Edge<Integer, Transport> e : edges) {
             //For all neighbours
             Node<Integer> neighbour = e.getTarget();
+            /* if the neighbour has NOT been visited yet*/
             if (unvisitedNodes.get(neighbour) != null) {
                 Transport route = e.getData();
 				if (player != Colour.Black && route == Transport.Boat) continue; // Detectives cannot use boats
 				//System.out.println(e.getData());
-                Integer numTickets = tickets.get(route);
+                Integer numTickets = ticketsAtNode.get(neighbour).get(route);
                 //Update distances
 				//System.out.println(neighbour.getIndex());
 				////System.out.println(pageRank.getPageRank(neighbour.getIndex()));
 				//System.out.println(numTickets);
 				//System.out.println(currentDistance);
-                Double tentativeDistance = currentDistance + (1 / (numTickets * pageRank.getPageRank(neighbour.getIndex())));
+                Integer tentativeDistance = currentDistance + 1;
                 if (tentativeDistance < distances.get(neighbour)) {
                     distances.put(neighbour, tentativeDistance);
                     previousNodes.put(neighbour, currentNode);
@@ -139,13 +145,16 @@ public class Dijkstra {
     // @param distances the current distances.
     // @param unvisitedNodes the nodes that have yet to be visited.
     // @return the minimum distance for all unvisited nodes.
-    private Node<Integer> minDistance(Map<Node<Integer>, Double> distances, Map<Node<Integer>, Double> unvisitedNodes) {
-        Double min = Double.POSITIVE_INFINITY;
+    private Node<Integer> minDistance(Map<Node<Integer>, Integer> distances, Map<Node<Integer>, Integer> unvisitedNodes) {
+        Integer min = Integer.POSITIVE_INFINITY;
 
         Node<Integer> minNode = null;
-        for (Map.Entry<Node<Integer>, Double> entry : distances.entrySet()) {
-            Double d = entry.getValue();
-            if (Double.compare(d, min) < 0 && unvisitedNodes.containsKey(entry.getKey())) {
+        for (Map.Entry<Node<Integer>, Integer> entry : distances.entrySet()) {
+            Integer d = entry.getValue();
+            /* if this node's distance is smaller than the minimum distance
+             * so far AND it is an unvisited node, save it
+             */
+            if (min > d && unvisitedNodes.containsKey(entry.getKey())) {
                 min = d;
                 minNode = entry.getKey();
             }
