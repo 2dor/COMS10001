@@ -17,12 +17,12 @@ public class Simulator extends ScotlandYard {
     private int simulatedMoves;
     private boolean occupiedNodes[];
 	private int[] movesGenerate;
-	private int[] movesValid;
+	private int[][] movesValid;
 
     private static Ticket TAXI = Ticket.fromTransport(Transport.Taxi);
     private static Ticket BUS = Ticket.fromTransport(Transport.Bus);
     private static Ticket UG = Ticket.fromTransport(Transport.Underground);
-    private static MoveTicket DUMMYMOVE = MoveTicket.instance(Colour.Black, Ticket.Taxi, 42);
+    private static int DUMMYMOVE = 11042;
 
     private final static Colour[] playerColours = {
         Colour.Black,
@@ -78,7 +78,7 @@ public class Simulator extends ScotlandYard {
         this.distancesByTickets = distancesByTickets;
         this.occupiedNodes = new boolean[201];
 		this.movesGenerate = new int[500];
-		this.movesValid = new int[500];
+		this.movesValid = new int[20][500];
 
         for (Colour p : playerColours) {
             Map<Ticket, Integer> tickets = new HashMap<Ticket, Integer>();
@@ -120,46 +120,49 @@ public class Simulator extends ScotlandYard {
         currentPlayer = getPlayer(playerColours[newIndex]);
     }
 
-    private void reversePlay(MoveTicket move, int previousLocation) {
+    private void reverseTicketMove(int move, int previousLocation) {
+		Ticket ticket = decodeTicket(move);
+		int target = decodeDestination(move);
         currentPlayer.setLocation(previousLocation);
-        currentPlayer.addTicket(move.ticket);
-        occupiedNodes[move.target] = false;
+        currentPlayer.addTicket(ticket);
+        occupiedNodes[target] = false;
         if (currentPlayer.getColour() == Colour.Black) {
             --currentRound;
         } else {
-            getPlayer(Colour.Black).removeTicket(move.ticket);
+            getPlayer(Colour.Black).removeTicket(ticket);
             occupiedNodes[previousLocation] = true;
         }
     }
 
-    private void reversePlay(MoveDouble move, int previousLocation) {
-        reversePlay(move.move2, move.move1.target);
-        reversePlay(move.move1, previousLocation);
+    private void reverseDoubleMove(int move, int previousLocation) {
+		int move1 = move / 100000;
+		int move1Target = decodeDestination(move1);
+		int move2 = move - move1 * 100000;
+        reversePlay(move2, move1Target);
+        reversePlay(move1, previousLocation);
         getPlayer(Colour.Black).addTicket(Ticket.Double);
     }
 
-    private void reversePlay(Move move, int previousLocation) {
-        if (move instanceof MoveTicket) {
-            reversePlay((MoveTicket) move, previousLocation);
-        } else if (move instanceof MoveDouble) {
-            reversePlay((MoveDouble) move, previousLocation);
-        } else if (move instanceof MovePass) {
-            // We do not need to do anything in here
+    private void reversePlay(int move, int previousLocation) {
+        if (isMoveTicket(move)) {
+            reverseTicketMove(move, previousLocation);
+        } else if (isMoveDouble(move)) {
+            reverseDoubleMove(move, previousLocation);
+        } else if (isMovePass(move)) {
+            return;
         }
     }
 
-    @Override
-    protected void play(Move move) {
-        if (move instanceof MoveTicket) play((MoveTicket) move);
-        else if (move instanceof MoveDouble) play((MoveDouble) move);
-        else if (move instanceof MovePass) play((MovePass) move);
+    protected void play(int move) {
+        if (isMoveTicket(move)) playTicket(move);
+        else if (isMoveDouble(move)) playDouble(move);
+        else if (isMovePass(move)) return;
     }
 
-    @Override
-    protected void play(MoveTicket move) {
-        Colour colour = move.colour;
-		Ticket ticket = move.ticket;
-		int target = move.target;
+    protected void playTicket(int move) {
+        Colour colour = decodeColour(move);
+		Ticket ticket = decodeTicket(move);
+		int target = decodeDestination(move);
 		PlayerData player = getPlayer(colour);
 		player.removeTicket(ticket);
         occupiedNodes[player.getLocation()] = false;
@@ -173,55 +176,38 @@ public class Simulator extends ScotlandYard {
 		} else {
 			currentRound++;
 		}
-        notifySpectators(move);
     }
 
-    @Override
-    protected void play(MoveDouble move) {
-        notifySpectators(move);
-		play(move.move1);
-		play(move.move2);
-        PlayerData mrX = getPlayer(move.colour);
+    protected void playDouble(int move) {
+		int move1 = move / 100000;
+		int move2 = move - move1 * 100000;
+		Colour colour = decodeColour(move1);
+		playTicket(move1);
+		playTicket(move2);
+        PlayerData mrX = getPlayer(colour);
         mrX.removeTicket(Ticket.Double);
     }
 
-    /**
-     * Plays a MovePass.
-     *
-     * @param move the MovePass to play.
-     */
-    @Override
-    protected void play(MovePass move) {
-        notifySpectators(move);
-    }
-
-    public void sendMove(Move move) {
-        if (move instanceof MovePass) {
-            return;
-        } else {
-            System.out.println("\nI am updating now!");
-            System.out.println("Printing old locations:");
-            for (Integer loc : this.mrXPossibleLocations) {
-                System.out.print(loc + ", ");
-            }
-            System.out.println("\n");
-            updatePossibleLocations(move, this.mrXPossibleLocations);
-            System.out.println("Printing updated locations:");
-            for (Integer loc : this.mrXPossibleLocations) {
-                System.out.print(loc + ", ");
-            }
-            System.out.println("\n");
-            play(move);
-            //System.out.println("\nCurrent Round: " + currentRound + "\n");
+    public void sendMove(Move moveMade) {
+		int move = encodeMove(moveMade);
+        System.out.println("\nI am updating now!");
+        System.out.println("Printing old locations:");
+        for (Integer loc : this.mrXPossibleLocations) {
+            System.out.print(loc + ", ");
         }
-    }
-
-    private void notifySpectators(Move move) {
-
+        System.out.println("\n");
+        updatePossibleLocations(move, this.mrXPossibleLocations);
+        System.out.println("Printing updated locations:");
+        for (Integer loc : this.mrXPossibleLocations) {
+            System.out.print(loc + ", ");
+        }
+        System.out.println("\n");
+        play(move);
+        //System.out.println("\nCurrent Round: " + currentRound + "\n");
     }
 
     // TEST IF CONFIGURATION SCORES ARE COMPUTED CORRECTLY
-    public Move minimax(Colour player,
+    public int minimax(Colour player,
                         int location,
                         int level,
                         int[] currentConfigurationScore,
@@ -268,8 +254,8 @@ public class Simulator extends ScotlandYard {
             // System.out.println(currentConfigurationScore[0]);
             return DUMMYMOVE;
         }
-        List<Move> moves = validMoves(player);
-        Move bestMove = DUMMYMOVE;
+        validMoves(player, level);
+        int bestMove = DUMMYMOVE;
         int[] nextScore = new int[1];
         nextScore[0] = 0;
         if (player == Colour.Black)
@@ -277,12 +263,11 @@ public class Simulator extends ScotlandYard {
         else
             bestScore = Integer.MAX_VALUE;
         HashSet<Integer> mrXNewLocations = new HashSet<Integer>();
-        for (Move move : moves) {
-            if (move instanceof MoveDouble) continue;
-            if (move instanceof MovePass) continue;
-            MoveTicket currentMove = (MoveTicket) move;
-
-            if (currentMove.ticket == Ticket.Secret) continue;
+        for (int i = 1; i <= movesValid[level][0]; ++i) {
+            if (isMoveDouble(movesValid[level][i])) continue;
+            if (isMovePass(movesValid[level][i])) continue;
+            //MoveTicket currentMove = (MoveTicket) move;
+            if (decodeTicket(movesValid[level][i]) == Ticket.Secret) continue;
             if (player == Colour.Black) {
                 if (bestScore > previousScore) {
                     currentConfigurationScore[0] = bestScore;
@@ -296,8 +281,8 @@ public class Simulator extends ScotlandYard {
             }
             mrXNewLocations.clear();
             mrXNewLocations.addAll(mrXOldLocations);
-            updatePossibleLocations(move, mrXNewLocations);
-            play(move);
+            updatePossibleLocations(movesValid[level][i], mrXNewLocations);
+            play(movesValid[level][i]);
             //System.out.println("Moving to " + currentMove.target);
             nextPlayer();
             /*************************************/
@@ -314,16 +299,16 @@ public class Simulator extends ScotlandYard {
                     // System.out.println("bestScore: " + bestScore + " nextScore: " + nextScore[0]);
                     // System.out.println(currentMove.target);
                     bestScore = nextScore[0];
-                    bestMove = move;
+                    bestMove = movesValid[level][i];
                 }
             } else {
                 if (bestScore > nextScore[0]) {
                     bestScore = nextScore[0];
-                    bestMove = move;
+                    bestMove = movesValid[level][i];
                 }
             }
             previousPlayer();
-            reversePlay(move, location);
+            reversePlay(movesValid[level][i], location);
         }
         currentConfigurationScore[0] = bestScore;
         //System.out.println("\nbest score after: " + bestScore);
@@ -381,8 +366,8 @@ public class Simulator extends ScotlandYard {
     //     }
     // }
 
-    private void updatePossibleLocations(Move move, HashSet<Integer> locations) {
-		int moveMade = encodeMove(move);
+    private void updatePossibleLocations(int moveMade, HashSet<Integer> locations) {
+		Colour colour = decodeColour(moveMade);
         if (getCurrentPlayer() == Colour.Black && rounds.get(view.getRound()) == true) {
             //clearing global list of Mr X possible locations
             mrXLocation = view.getPlayerLocation(Colour.Black);
@@ -390,8 +375,8 @@ public class Simulator extends ScotlandYard {
             locations.add(mrXLocation);
             // System.out.println("\nPOSSIBLE LOCATIONS RESTARTED");
         } else {
-            if (move.colour == Colour.Black) {
-                MoveTicket movePrint = (MoveTicket) move;
+            if (colour == Colour.Black) {
+                //MoveTicket movePrint = (MoveTicket) move;
                 // System.out.println("\nI am black!");
                 HashSet<Integer> newLocations = new HashSet<Integer>();
                 // System.out.println("I have " + newLocations.size() + "locations. And I should have: " + locations.size());
@@ -407,10 +392,10 @@ public class Simulator extends ScotlandYard {
                     for (int i = 1; i <= movesGenerate[0]; ++i) {
                         m = movesGenerate[i];
 						// if both moves are single
-                        if (m < 100000 && moveMade < 100000) {
+                        if (isMoveTicket(m) && isMoveTicket(moveMade)) {
 							// checks if colours and tickets match and if so it adds the location
 							// to the movesGenerate. Modulo quicker then parsing!
-                            int destination = getDestination(m);
+                            int destination = decodeDestination(m);
 							if (Math.abs(moveMade - m) < 201 && !occupiedNodes[destination]) {
                                 // System.out.print("\nColour: " + movePrint.colour);
                                 // System.out.print(" Ticket: " + movePrint.ticket);
@@ -419,15 +404,15 @@ public class Simulator extends ScotlandYard {
                                 newLocations.add(destination);
 							}
 						// if both moves are double
-                        } else if (m > 100000 && moveMade > 100000) {
+					} else if (isMoveDouble(m) && isMoveDouble(moveMade)) {
 							//Probably parse and separate moves and then apply
 							//technique above.
                             int m1 = m / 100000;
                             int m2 = m - m1 * 100000;
                             int moveMade1 = moveMade / 100000;
                             int moveMade2 = moveMade - moveMade1 * 100000;
-                            int destinationM1 = getDestination(m1);
-                            int destinationM2 = getDestination(m2);
+                            int destinationM1 = decodeDestination(m1);
+                            int destinationM2 = decodeDestination(m2);
                             if (Math.abs(moveMade1 - m1) < 201 && !occupiedNodes[destinationM1]) {
                                 if (Math.abs(moveMade2 - m2) < 201 && !occupiedNodes[destinationM2]) {
                                     newLocations.add(destinationM2);
@@ -446,7 +431,7 @@ public class Simulator extends ScotlandYard {
                 // System.out.println("\n");
             } else {
                 // System.out.println("\nI am a detective!");
-                int destination = getDestination(moveMade);
+                int destination = decodeDestination(moveMade);
                 // System.out.println("Printing possible locations:");
                 // for (Integer loc : locations) {
                     // System.out.print(loc + ", ");
@@ -465,40 +450,25 @@ public class Simulator extends ScotlandYard {
         }
     }
 
-    private int getDestination(int move) {
+    private int decodeDestination(int move) {
         return move - (move / 1000) * 1000;
     }
 
 	private int getSingleTicket(int move) {
-		return (move - (move / 10000) * 10000) - getDestination(move);
+		return (move - (move / 10000) * 10000) - decodeDestination(move);
 	}
 
+	private boolean isMoveDouble(int move) {
+		return move > 100000;
+	}
 
-   //  public int[] validMoves(Colour player) {
-   //     int[] listOfValidMoves = new int[30];
-   //     PlayerData playerAux = getPlayer(player);
-   //     generateMoves(playerAux, listOfValidMoves);
-   //     if(listOfValidMoves.length() == 0 && player != Colour.Black){
-   //         listOfValidMoves.add(MovePass.instance(player));
-   //     }
-   //     return listOfValidMoves;
-   //
-   // }
+	private boolean isMovePass(int move) {
+		return decodeDestination(move) == 0;
+	}
 
-   /**
-    * Returns true if target node is occupied
-    *
-    * @param edge The edge we are using to test if the target node is occupied.
-    * @return true if target occupied, false otherwise.
-    */
-   // private boolean isOccupied(Edge<Integer, Transport> edge) {
-   //     for (PlayerData p : playersInGame) {
-   //         if (p.getColour() != Colour.Black && p.getLocation() == (Integer) edge.getTarget().getIndex()) {
-   //             return true;
-   //         }
-   //     }
-   //     return false;
-   // }
+	private boolean isMoveTicket(int move) {
+		return !isMovePass(move) && !isMoveDouble(move);
+	}
 
     // Converts a colour into the Move form.
     public int encodeColour(Colour colour) {
@@ -517,6 +487,11 @@ public class Simulator extends ScotlandYard {
         }
         return -1;
     }
+
+	public Colour decodeColour(int move) {
+		int colour = move / 10000;
+		return playerColours[colour - 1];
+	}
 
 	public Ticket decodeTicket(int move) {
 		int ticket = getSingleTicket(move) / 1000;
@@ -621,26 +596,66 @@ public class Simulator extends ScotlandYard {
         return true;
     }
 
-	public void validMovesNew(Colour player) {
-		movesValid[0] = 0;
-        generateMoves(player, getPlayerLocation(player));
-		movesValid = movesGenerate;
-		filterMovesValid(player);
-        if(movesValid[0] == 0 && player != Colour.Black){
-            addElementToArray(movesValid, encodeColour(player));
+	public void validMoves(Colour col, int level) {
+		movesValid[level][0] = 0;
+		PlayerData player = getPlayer(col);
+        int colour = encodeColour(col);
+        int normalTicket = 0;
+        int secretTicket = encodeTicket(Ticket.Secret);
+		int doubleTicket = encodeTicket(Ticket.Double);
+        int normalMove = 0;
+        int secretMove = 0;
+        Node<Integer> nodeLocation = graph.getNode(player.getLocation());
+        // System.out.println("\nGenerating moves.");
+        for (Edge<Integer, Transport> e : graph.getEdgesFrom(nodeLocation)) {
+           //TODO: lookup for Transport to Ticket
+           normalTicket = encodeTicket(Ticket.fromTransport(e.getData()));
+           normalMove = colour + normalTicket + e.getTarget().getIndex();
+		   if (hasTickets(player, Ticket.fromTransport(e.getData())) && !occupiedNodes[e.getTarget().getIndex()]) {
+			   addElementToArray(movesValid[level], normalMove);
+		   }
+           if (col == Colour.Black) {
+			   if (hasTickets(player, Ticket.Secret) && !occupiedNodes[e.getTarget().getIndex()]) {
+				   secretMove = colour + secretTicket + e.getTarget().getIndex();
+				   addElementToArray(movesValid[level], secretMove);
+			   }
+			   if (hasTickets(player, Ticket.Double)) {
+				   player.removeTicket(Ticket.fromTransport(e.getData()));
+				   validDoubleMoves(player, e, normalMove, level);
+				   player.addTicket(Ticket.fromTransport(e.getData()));
+				   player.removeTicket(Ticket.Secret);
+				   validDoubleMoves(player, e, secretMove, level);
+				   player.addTicket(Ticket.Secret);
+			   }
+           }
         }
-    }
+		if(movesValid[level][0] == 0 && col != Colour.Black){
+            addElementToArray(movesValid[level], encodeColour(col));
+        }
+	}
 
-	public void filterMovesValid(Colour colour) {
-		PlayerData player = getPlayer(colour);
-		for (int i = 1; i <= movesValid[0]; ++i) {
-			if (movesValid[i] < 100000) {
-				int destination = getDestination(movesValid[i]);
-				Ticket ticket = decodeTicket(movesValid[i]);
-				if (!hasTickets(player, ticket) || occupiedNodes[destination]) {
-
-				}
-			}
+	public void validDoubleMoves(PlayerData player, Edge<Integer, Transport> previousEdge, int movePrevious, int level) {
+		int colour = encodeColour(player.getColour());
+		int normalTicket = 0;
+        int secretTicket = encodeTicket(Ticket.Secret);
+        int normalMove = 0;
+        int secretMove = 0;
+        int normalDouble = 0;
+        int secretDouble = 0;
+		Integer middle = (Integer) previousEdge.getTarget().getIndex();
+        Node<Integer> nodeLocation = graph.getNode(middle);
+		for (Edge<Integer, Transport> e : graph.getEdgesFrom(nodeLocation)) {
+            normalTicket = encodeTicket(Ticket.fromTransport(e.getData()));
+            if (hasTickets(player, Ticket.fromTransport(e.getData())) && !occupiedNodes[e.getTarget().getIndex()]) {
+				normalMove = colour + normalTicket + e.getTarget().getIndex();
+				normalDouble = movePrevious * 100000 + normalMove;
+				addElementToArray(movesValid[level], normalDouble);
+            }
+			if (hasTickets(player, Ticket.Secret) && !occupiedNodes[e.getTarget().getIndex()]) {
+            	secretMove = colour + secretTicket + e.getTarget().getIndex();
+            	secretDouble = movePrevious * 100000 + secretMove;
+            	addElementToArray(movesValid[level], secretDouble);
+        	}
 		}
 	}
 }
