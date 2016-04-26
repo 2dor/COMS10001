@@ -33,7 +33,7 @@ public class AIPlayerFactory implements PlayerFactory {
         ready();
         //testEfficiency.test1();
         System.out.println("Creating " + colour + " random player.\n");
-        AIPlayer aiPlayer = new AIPlayer(view, mapFilename, colour, distancesByTickets);
+        AIPlayer aiPlayer = new AIPlayer(view, mapFilename, colour, distancesByTickets, distances);
         addSpectator(aiPlayer);
         return aiPlayer;
     }

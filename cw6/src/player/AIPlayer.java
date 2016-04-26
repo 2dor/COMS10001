@@ -25,7 +25,8 @@ public class AIPlayer implements Player, Spectator {
     public AIPlayer(ScotlandYardView view,
                     String graphFilename,
                     Colour player,
-                    int distancesByTickets[][][][][]) {
+                    int distancesByTickets[][][][][],
+                    int distances[][]) {
         //TODO: A better AI makes use of `view` and `graphFilename`.
 		this.view = view;
 		this.players = view.getPlayers();
@@ -34,7 +35,7 @@ public class AIPlayer implements Player, Spectator {
         ScotlandYardGraph graph = makeGraph(graphFilename);
         MapQueue<Integer,Token> queue = new ScotlandYardMapQueue<Integer,Token>();
         simulator = new Simulator(5, this.rounds, graph, queue, 42);
-        simulator.setSimulator(view, graphFilename, distancesByTickets);
+        simulator.setSimulator(view, graphFilename, distancesByTickets, distances);
         this.player = player;
     }
 
