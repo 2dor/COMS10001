@@ -14,6 +14,7 @@ public class Simulator extends ScotlandYard {
     private List<Boolean> rounds;
     private int currentRound;
     private int distancesByTickets[][][][][];
+    private int distances[][];
     private int simulatedMoves;
     private boolean occupiedNodes[];
 	private int[] movesGenerate;
@@ -63,7 +64,8 @@ public class Simulator extends ScotlandYard {
 
     public void setSimulator(ScotlandYardView view,
                              String graphFilename,
-                             int distancesByTickets[][][][][]) {
+                             int distancesByTickets[][][][][],
+                             int distances[][]) {
         System.out.println("\nSetting simulator\n");
         for (Colour c : playerColours){
             System.out.println(c);
@@ -76,6 +78,7 @@ public class Simulator extends ScotlandYard {
         this.mrXPossibleLocations = new HashSet<Integer>();
         this.mrXPossibleLocations.add(35);
         this.distancesByTickets = distancesByTickets;
+        this.distances = distances;
         this.occupiedNodes = new boolean[201];
 		this.movesGenerate = new int[500];
 		this.movesValid = new int[500];
@@ -356,8 +359,8 @@ public class Simulator extends ScotlandYard {
 
     // get distance to closest detective; from detective to mr X.
 	private int getNodeRank(int location) {
-		Dijkstra dijkstra = new Dijkstra(graphFilename);
-		List<Integer> route = new ArrayList<Integer>();
+		// Dijkstra dijkstra = new Dijkstra(graphFilename);
+		// List<Integer> route = new ArrayList<Integer>();
 		int bestScore = 666013;
         int score = 0;
 		for (Colour p : playerColours){
@@ -373,14 +376,20 @@ public class Simulator extends ScotlandYard {
 			// System.out.println("Tickets UG: " + tickets.get(Transport.Underground));
 			// System.out.println("");
 
-            route = dijkstra.getRoute(getPlayerLocation(p), location, tickets, p);
-            score = distancesByTickets[getPlayerLocation(p)]
-                                      [location]
-                                      [getPlayerTickets(p, TAXI)]
-                                      [getPlayerTickets(p, BUS)]
-                                      [getPlayerTickets(p, UG)];
-            System.out.println("From " + p + " at " + getPlayerLocation(p) + " to Black at " + location + " the distance is " + score);
-            System.out.println("Dijkstra score: " + route.size());
+            //route = dijkstra.getRoute(getPlayerLocation(p), location, tickets, p);
+            score = distances[getPlayerLocation(p)][location];
+            // score = distancesByTickets[getPlayerLocation(p)]
+            //                           [location]
+            //                           [getPlayerTickets(p, TAXI)]
+            //                           [getPlayerTickets(p, BUS)]
+            //                           [getPlayerTickets(p, UG)];
+            //score = route.size() - 1;
+            // System.out.println("From " + p + " at " + getPlayerLocation(p) + " to Black at " + location + " the distance is " + score);
+            // System.out.println("Dijkstra score: " + route.size() + "with node: ");
+            // for (Integer nodeID : route) {
+            //     System.out.print(nodeID + " ");
+            // }
+            // System.out.println("");
             bestScore = Math.min(bestScore, score);
 		}
 		return bestScore;

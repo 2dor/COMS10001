@@ -16,7 +16,7 @@ public class Dijkstra {
     private PageRank pageRank;
     private Graph<Integer, Transport> graph;
     private List<Node<Integer>> nodes;
-
+    private static int INFINITY = 0x3f3f3f3f;//roughly 1 billion
     /**
      * Constructs a new Dijkstra object.
      *
@@ -53,18 +53,18 @@ public class Dijkstra {
         Map<Node<Integer>, Integer> distances = new HashMap<Node<Integer>, Integer>();
         Map<Node<Integer>, Node<Integer>> previousNodes = new HashMap<Node<Integer>, Node<Integer>>();
         Node<Integer> currentNode = graph.getNode(start);
-        Map<Node<Integer>, Map<Transport, Integer>> ticketsAtNode = new HashMap<Node<Integer>, HashMap<Transport, Integer>>();
+        //Map<Node<Integer>, Map<Transport, Integer>> ticketsAtNode = new HashMap<Node<Integer>, HashMap<Transport, Integer>>();
         /* Initialise source with distance 0.0 and the rest of the nodes
          * with distance POSITIVE_INFINITY
          * Initialise unvisitedNodes with their respective PageRank
          */
         for (Node<Integer> node : nodes) {
             if (!currentNode.getIndex().equals(node.getIndex())) {
-                distances.put(node, Integer.POSITIVE_INFINITY);
-                ticketsAtNode.put(node, new HashMap<Transport, Integer>());
+                distances.put(node, INFINITY);
+                //ticketsAtNode.put(node, new HashMap<Transport, Integer>());
             } else {
                 distances.put(node, 0);
-                ticketsAtNode.put(node, new HashMap<Transport, Integer>(tickets));
+                //ticketsAtNode.put(node, new HashMap<Transport, Integer>(tickets));
             }
             Integer location = node.getIndex();
             try {
@@ -82,7 +82,10 @@ public class Dijkstra {
             if (m == null) break;
             currentNode = m;
             /* Stop when we reach the destination */
-            if (currentNode.getIndex().equals(destination)) break;
+            if (currentNode.getIndex().equals(destination)) {
+                // System.out.println("Coming to destination " + destination + " from " + previousNodes.get(currentNode));
+                break;
+            }
             unvisitedNodes.remove(currentNode);
 
             step(graph, distances, unvisitedNodes, currentNode, previousNodes, tickets, player);
@@ -116,7 +119,7 @@ public class Dijkstra {
 					  Colour player) {
         List<Edge<Integer, Transport>> edges = graph.getEdgesFrom(currentNode);
         Integer currentDistance = distances.get(currentNode);
-		// System.out.println("Current node: "+currentNode.getIndex());
+		// System.out.println("Current node " + currentNode.getIndex() + " with distance " + currentDistance);
         for (Edge<Integer, Transport> e : edges) {
             //For all neighbours
             Node<Integer> neighbour = e.getTarget();
@@ -125,14 +128,14 @@ public class Dijkstra {
                 Transport route = e.getData();
 				if (player != Colour.Black && route == Transport.Boat) continue; // Detectives cannot use boats
 				//System.out.println(e.getData());
-                Integer numTickets = ticketsAtNode.get(neighbour).get(route);
+                //Integer numTickets = ticketsAtNode.get(neighbour).get(route);
                 //Update distances
-				//System.out.println(neighbour.getIndex());
-				////System.out.println(pageRank.getPageRank(neighbour.getIndex()));
+				//System.out.println(pageRank.getPageRank(neighbour.getIndex()));
 				//System.out.println(numTickets);
 				//System.out.println(currentDistance);
                 Integer tentativeDistance = currentDistance + 1;
                 if (tentativeDistance < distances.get(neighbour)) {
+                    // System.out.println("updated distance for neighbour " + neighbour.getIndex() + " to " + tentativeDistance);
                     distances.put(neighbour, tentativeDistance);
                     previousNodes.put(neighbour, currentNode);
                 }
@@ -146,7 +149,7 @@ public class Dijkstra {
     // @param unvisitedNodes the nodes that have yet to be visited.
     // @return the minimum distance for all unvisited nodes.
     private Node<Integer> minDistance(Map<Node<Integer>, Integer> distances, Map<Node<Integer>, Integer> unvisitedNodes) {
-        Integer min = Integer.POSITIVE_INFINITY;
+        Integer min = INFINITY;
 
         Node<Integer> minNode = null;
         for (Map.Entry<Node<Integer>, Integer> entry : distances.entrySet()) {

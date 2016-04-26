@@ -22,12 +22,13 @@ public class AIPlayerFactory implements PlayerFactory {
     private int distancesByTickets[][][][][];
     private String graphFilename;
     private List<Spectator> spectators = new ArrayList<Spectator>();
-
+    private int distances[][];
     @Override
     public Player getPlayer(Colour colour, ScotlandYardView view, String mapFilename) {
         //TODO: Update this with your AI implementation.
         System.out.println(mapFilename);
         distancesByTickets = new int[201][201][12][9][5];
+        distances = new int[201][201];
         testEfficiency.test2();
         ready();
         //testEfficiency.test1();
@@ -60,27 +61,60 @@ public class AIPlayerFactory implements PlayerFactory {
     public void ready() {
         //TODO: Any code you need to execute when the game starts, put here.
         this.graphFilename = "graph.txt";
-        File file = new File("lookup-node-rank.txt");
-
+        //File file = new File("lookup-node-rank.txt");
+        File file = new File("lookup-node-distances.txt");
+        // try {
+        //     //Scanner reader = new Scanner(file);
+        //     BufferedInputStream bis = new BufferedInputStream(new FileInputStream("lookup-node-rank.txt"));
+        //     for (int source = 1; source < 200; ++source) {
+        //         System.out.println("Reading source: " + source);
+        //         for (int destination = 1; destination < 200; ++destination) {
+        //             for (int taxiTickets = 0; taxiTickets < 12; ++taxiTickets) {
+        //                 for (int busTickets = 0; busTickets < 9; ++busTickets) {
+        //                     for (int ugTickets = 0; ugTickets < 5; ++ugTickets) {
+        //                         distancesByTickets[source][destination][taxiTickets][busTickets][ugTickets]
+        //                             = readInt(bis);//reader.nextInt();
+        //                     }
+        //                 }
+        //             }
+        //         }
+        //     }
+        // } catch (IOException e) {
+        //     System.out.println("Error:\nError creating Scanner.");
+        // }
         try {
             //Scanner reader = new Scanner(file);
-            BufferedInputStream bis = new BufferedInputStream(new FileInputStream("lookup-node-rank.txt"));
+            BufferedInputStream bis = new BufferedInputStream(new FileInputStream("lookup-node-distances.txt"));
             for (int source = 1; source < 200; ++source) {
                 System.out.println("Reading source: " + source);
                 for (int destination = 1; destination < 200; ++destination) {
-                    for (int taxiTickets = 0; taxiTickets < 12; ++taxiTickets) {
-                        for (int busTickets = 0; busTickets < 9; ++busTickets) {
-                            for (int ugTickets = 0; ugTickets < 5; ++ugTickets) {
-                                distancesByTickets[source][destination][taxiTickets][busTickets][ugTickets]
-                                    = readInt(bis);//reader.nextInt();
-                            }
-                        }
-                    }
+                    distances[source][destination] = readInt(bis);//reader.nextInt();
                 }
             }
         } catch (IOException e) {
             System.out.println("Error:\nError creating Scanner.");
         }
+        // try {
+        //     PrintWriter writer = new PrintWriter(file, "UTF-8");
+        //     distances = new int[201][201];
+        //     Dijkstra dijkstra = new Dijkstra(graphFilename);
+        //     List<Integer> route = new ArrayList<Integer>();
+        //     Map<Transport, Integer> tickets = new HashMap<Transport, Integer>();
+        //     for (int source = 1; source < 200; ++source) {
+        //         System.out.println("Computing Source: " + source);
+        //         //writer.println("Source " + source);
+        //         writer.print("\n");
+        //         for (int destination = 1; destination < 200; ++destination) {
+        // 			route = dijkstra.getRoute(source, destination, tickets, Colour.Blue);
+        // 			distances[source][destination]
+        //                 = route.size() - 1;
+        //             writer.print(distances[source][destination]);
+        //             writer.print(" ");
+        //         }
+        //     }
+        // } catch (IOException e) {
+        //     System.out.println("\nError caught while creating PrintWriter");
+        // }
         /*try {
             PrintWriter writer = new PrintWriter(file, "UTF-8");
             distancesByTickets = new int[201][201][12][9][5];
