@@ -64,10 +64,14 @@ public class AIPlayer implements Player, Spectator {
         }
         System.out.println("");
         int bestScore = 0;
+        /* We set these values because the first ply is a special case where
+         * you should NOT be allowed to prune. Therefore, you can only prune
+         * after this first ply.
+         */
         if (player == Colour.Black)
-            bestScore = Integer.MIN_VALUE;
-        else
             bestScore = Integer.MAX_VALUE;
+        else
+            bestScore = Integer.MIN_VALUE;
         int move = simulator.minimax(Colour.Black, location, level, currentConfigurationScore, bestScore, simulator.mrXPossibleLocations);
 		Move bestMove = simulator.decodeMove(move);
         System.out.println("\nConfiguration score after");
