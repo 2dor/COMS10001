@@ -25,7 +25,8 @@ public class AIPlayer implements Player, Spectator {
     public AIPlayer(ScotlandYardView view,
                     String graphFilename,
                     Colour player,
-                    int distancesByTickets[][][][][]) {
+                    int distancesByTickets[][][][][],
+                    int distances[][]) {
         //TODO: A better AI makes use of `view` and `graphFilename`.
 		this.view = view;
 		this.players = view.getPlayers();
@@ -34,7 +35,7 @@ public class AIPlayer implements Player, Spectator {
         ScotlandYardGraph graph = makeGraph(graphFilename);
         MapQueue<Integer,Token> queue = new ScotlandYardMapQueue<Integer,Token>();
         simulator = new Simulator(5, this.rounds, graph, queue, 42);
-        simulator.setSimulator(view, graphFilename, distancesByTickets);
+        simulator.setSimulator(view, graphFilename, distancesByTickets, distances);
         this.player = player;
     }
 
@@ -62,7 +63,17 @@ public class AIPlayer implements Player, Spectator {
             System.out.print(i + " ");
         }
         System.out.println("");
-        Move bestMove = simulator.minimax(Colour.Black, location, level, currentConfigurationScore, simulator.mrXPossibleLocations);
+        int bestScore = 0;
+        /* We set these values because the first ply is a special case where
+         * you should NOT be allowed to prune. Therefore, you can only prune
+         * after this first ply.
+         */
+        if (player == Colour.Black)
+            bestScore = Integer.MAX_VALUE;
+        else
+            bestScore = Integer.MIN_VALUE;
+        int move = simulator.minimax(Colour.Black, location, level, currentConfigurationScore, bestScore, simulator.mrXPossibleLocations);
+		Move bestMove = simulator.decodeMove(move);
         System.out.println("\nConfiguration score after");
         System.out.println(currentConfigurationScore[0]);
         // Collections.shuffle(moves);
@@ -73,7 +84,7 @@ public class AIPlayer implements Player, Spectator {
 
     @Override
     public void notify(Move move) {
-        System.out.println("I get the move!");
+        //System.out.println("I get the move!");
         simulator.sendMove(move);
     }
 
