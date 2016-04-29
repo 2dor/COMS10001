@@ -21,12 +21,11 @@ public class AIPlayer implements Player, Spectator {
     private Simulator simulator;
     private Colour player;
 
-
     public AIPlayer(ScotlandYardView view,
                     String graphFilename,
                     Colour player,
-                    int distancesByTickets[][][][][],
-                    int distances[][]) {
+                    int distances[][],
+                    int generatedMoves[][]) {
         //TODO: A better AI makes use of `view` and `graphFilename`.
 		this.view = view;
 		this.players = view.getPlayers();
@@ -35,7 +34,7 @@ public class AIPlayer implements Player, Spectator {
         ScotlandYardGraph graph = makeGraph(graphFilename);
         MapQueue<Integer,Token> queue = new ScotlandYardMapQueue<Integer,Token>();
         simulator = new Simulator(5, this.rounds, graph, queue, 42);
-        simulator.setSimulator(view, graphFilename, distancesByTickets, distances);
+        simulator.setSimulator(view, graphFilename, distances, generatedMoves);
         this.player = player;
     }
 
@@ -73,7 +72,11 @@ public class AIPlayer implements Player, Spectator {
         else
             bestScore = Integer.MIN_VALUE;
         int move = simulator.minimax(Colour.Black, location, level, currentConfigurationScore, bestScore, simulator.mrXPossibleLocations);
-		Move bestMove = simulator.decodeMove(move);
+        System.out.println("Printing locations after minimax:");
+        for (Integer loc : simulator.mrXPossibleLocations) {
+            System.out.print(loc + ", ");
+        }
+        Move bestMove = simulator.decodeMove(move);
         System.out.println("\nConfiguration score after");
         System.out.println(currentConfigurationScore[0]);
         // Collections.shuffle(moves);
