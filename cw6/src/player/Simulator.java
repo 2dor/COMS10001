@@ -17,7 +17,7 @@ public class Simulator extends ScotlandYard {
     private int distances[][];
     private int simulatedMoves;
     private boolean occupiedNodes[];
-	private int[] movesGenerate;
+	private int[][] generatedMoves;
 	private int[][] movesValid;
 
     private static Ticket TAXI = Ticket.fromTransport(Transport.Taxi);
@@ -44,8 +44,8 @@ public class Simulator extends ScotlandYard {
         4,
         3,
         3,
-        2,
-        5
+        5,
+        2
     };
     public final static int[] detectiveTicketNumbers = {
         11,
@@ -64,8 +64,8 @@ public class Simulator extends ScotlandYard {
 
     public void setSimulator(ScotlandYardView view,
                              String graphFilename,
-                             int distancesByTickets[][][][][],
-                             int distances[][]) {
+                             int distances[][],
+                             int generatedMoves[][]) {
         System.out.println("\nSetting simulator\n");
         for (Colour c : playerColours){
             System.out.println(c);
@@ -76,14 +76,13 @@ public class Simulator extends ScotlandYard {
 		this.rounds = view.getRounds();
 		this.currentRound = view.getRound();
         this.mrXPossibleLocations = new HashSet<Integer>();
-        this.mrXPossibleLocations.add(35);
-        this.distancesByTickets = distancesByTickets;
         this.distances = distances;
+        this.generatedMoves = generatedMoves;
         this.occupiedNodes = new boolean[201];
-		this.movesGenerate = new int[500];
 		this.movesValid = new int[20][500];
-
         for (Colour p : playerColours) {
+            if (p != Colour.Black)
+                System.out.println(view.getPlayerLocation(p));
             Map<Ticket, Integer> tickets = new HashMap<Ticket, Integer>();
             for(int i = 0; i < ticketType.length; ++i) {
                 if (p == Colour.Black) {
@@ -99,6 +98,7 @@ public class Simulator extends ScotlandYard {
                 join(new SimulatedPlayer(), p, 0, tickets);
             } else {
                 join(new SimulatedPlayer(), p, view.getPlayerLocation(p), tickets);
+                occupiedNodes[view.getPlayerLocation(p)] = true;
             }
         }
         this.currentPlayer = getPlayer(Colour.Black);
@@ -188,7 +188,10 @@ public class Simulator extends ScotlandYard {
 		playTicket(move1);
 		playTicket(move2);
         PlayerData mrX = getPlayer(colour);
+        System.out.println("\nDOUBLE MOVE");
+        System.out.println(getPlayerTickets(Colour.Black, Ticket.Double));
         mrX.removeTicket(Ticket.Double);
+        System.out.println(getPlayerTickets(Colour.Black, Ticket.Double));
     }
 
     public void sendMove(Move moveMade) {
@@ -223,6 +226,16 @@ public class Simulator extends ScotlandYard {
         if (player == Colour.Black) {
             //mrXLocation = location;
             getPlayer(Colour.Black).setLocation(location);
+            if (view.getRound() == 0) {
+                mrXOldLocations.add(35);
+                mrXOldLocations.add(127);
+                mrXOldLocations.add(106);
+                mrXOldLocations.add(166);
+                // for (Colour p : playerColours) {
+                //     if (p == Colour.Black) continue;
+                //     mrXOldLocations.remove(getPlayer()
+                // }
+            }
         }
         // System.out.println("\nAfter calling minimax, we have players: ");
         // for (PlayerData p : players) {
@@ -235,8 +248,13 @@ public class Simulator extends ScotlandYard {
         //         System.out.println("player: " + p.getColour() + " location: " + p.getLocation());
         //     }
         // }
+        //System.out.println("Black is at: " + getPlayer(Colour.Black).getLocation());
         currentConfigurationScore[0] = getNodeRank(getPlayer(Colour.Black).getLocation()) * 100;
-        // System.out.println("currentConfigurationScore " + currentConfigurationScore[0]);
+        if (currentConfigurationScore[0] == 0) {
+            //System.out.println("currentConfigurationScore " + currentConfigurationScore[0]);
+            //System.out.println("currentConfigurationScore is zero at level " + level);
+            //System.out.println("Black");
+        }
         /* if the minimum distance to a detective is zero, it means that Mr X
          * was caught so we can end this branch of the minimax
          */
@@ -244,7 +262,7 @@ public class Simulator extends ScotlandYard {
             return DUMMYMOVE;
         }
         Integer bestScore = 0;
-        if ((level == 11) || (currentRound == 22 && player == Colour.Black)) {
+        if ((level == 6) || (currentRound == 22 && player == Colour.Black)) {
             currentConfigurationScore[0] += mrXOldLocations.size();
             currentConfigurationScore[0] *= 1000;
             currentConfigurationScore[0] += getDetectiveScore(mrXOldLocations);
@@ -274,10 +292,16 @@ public class Simulator extends ScotlandYard {
         // }
         int detective_score = 0;
         int mrx_score = 0;
+        if (player == Colour.Black) {
+            System.out.println("Printing moves for mr x");
+        }
         for (int i = 1; i <= movesValid[level][0]; ++i) {
-            if (isMoveDouble(movesValid[level][i])) continue;
+            if (player == Colour.Black)  {
+                System.out.println(movesValid[level][i]);
+            }
+            //if (isMoveDouble(movesValid[level][i])) continue;
             //MoveTicket currentMove = (MoveTicket) move;
-            if (isMoveTicket(movesValid[level][i]) && decodeTicket(movesValid[level][i]) == Ticket.Secret) continue;
+            //if (isMoveTicket(movesValid[level][i]) && decodeTicket(movesValid[level][i]) == Ticket.Secret) continue;
             // System.out.print("Current bestScore " + bestScore + " ");
             // System.out.println("Current player " + player + " playing move " + movesValid[level][i] + " at level " + level);
             if (player == Colour.Black) {
@@ -420,7 +444,13 @@ public class Simulator extends ScotlandYard {
         // for (Integer loc : locations) {
         //     System.out.print(loc + ", ");
         // }
-		Colour colour = decodeColour(moveMade);
+        Colour colour = Colour.Black;
+        if (isMoveDouble(moveMade)) {
+            int move1 = moveMade / 100000;
+            colour = decodeColour(move1);
+        } else {
+		    colour = decodeColour(moveMade);
+        }
         if (getCurrentPlayer() == Colour.Black && rounds.get(view.getRound()) == true) {
             //clearing global list of Mr X possible locations
             mrXLocation = view.getPlayerLocation(Colour.Black);
@@ -439,15 +469,16 @@ public class Simulator extends ScotlandYard {
                 // }
                 // System.out.println();
                 for (Integer location : locations) {
-                    generateMoves(Colour.Black, location);
-                    //movesGenerate = graph.generateMoves(Colour.Black, location);
+                    //generatedMoves = graph.generateMoves(Colour.Black, location);
                     int m = 0;
-                    for (int i = 1; i <= movesGenerate[0]; ++i) {
-                        m = movesGenerate[i];
+                    // System.out.println("For location " + location);
+                    for (int i = 1; i <= generatedMoves[location][0]; ++i) {
+                        m = generatedMoves[location][i];
+                        // System.out.println(generatedMoves[location][i]);
 						// if both moves are single
                         if (isMoveTicket(m) && isMoveTicket(moveMade)) {
 							// checks if colours and tickets match and if so it adds the location
-							// to the movesGenerate. Modulo quicker then parsing!
+							// to the generatedMoves. Modulo quicker then parsing!
                             int destination = decodeDestination(m);
 							if (Math.abs(moveMade - m) < 201 && !occupiedNodes[destination]) {
                                 // System.out.print("\nColour: " + colour);
@@ -564,7 +595,7 @@ public class Simulator extends ScotlandYard {
 			int m2 = move - m1 * 100000;
 			MoveTicket move1 = decodeMoveTicket(m1);
 			MoveTicket move2 = decodeMoveTicket(m2);
-			Move dbl = MoveDouble.instance(decodeColour(move), move1, move2);
+			Move dbl = MoveDouble.instance(decodeColour(m1), move1, move2);
 			return dbl;
 		}
 		Move pass = MovePass.instance(decodeColour(move));
@@ -610,63 +641,6 @@ public class Simulator extends ScotlandYard {
     public void addElementToArray(int[] a, int e) {
        a[ a[0] + 1 ] = e;
        ++a[0];
-    }
-
-    // Generates all possible moves(encoded form) for a player given a location.
-    private void generateMoves(Colour colour, int location) {
-		movesGenerate[0] = 0;
-        int player = encodeColour(colour);
-        int normalTicket = 0;
-        int secretTicket = encodeTicket(Ticket.Secret);
-        int normalMove = 0;
-        int secretMove = 0;
-        Node<Integer> nodeLocation = graph.getNode(location);
-        // System.out.println("\nGenerating moves.");
-        for (Edge<Integer, Transport> e : graph.getEdgesFrom(nodeLocation)) {
-           //TODO: lookup for Transport to Ticket
-           normalTicket = encodeTicket(Ticket.fromTransport(e.getData()));
-           normalMove = player + normalTicket + e.getTarget().getIndex();
-           //System.out.println("Adding normalMove: " + normalMove);
-           addElementToArray(movesGenerate, normalMove);
-           if (colour == Colour.Black) {
-        	   secretMove = player + secretTicket + e.getTarget().getIndex();
-        	   addElementToArray(movesGenerate, secretMove);
-        	   generateDoubleMoves(player, e, normalMove, movesGenerate);
-        	   generateDoubleMoves(player, e, secretMove, movesGenerate);
-           }
-        }
-        // System.out.println("All generated moves: ");
-        // for (int i = 0; i < movesGenerate[0]; ++i) {
-        //     System.out.print(movesGenerate[i] + " ");
-        // }
-        // System.out.println("");
-    }
-
-    // Generates all double moves given a player, previous edge and previous move.
-    // Double moves are two single moves concatenated.
-    private void generateDoubleMoves(int player, Edge previousEdge, int movePrevious, int[] movesGenerate) {
-        int normalTicket = 0;
-        int secretTicket = encodeTicket(Ticket.Secret);
-        int normalMove = 0;
-        int secretMove = 0;
-        int normalDouble = 0;
-        int secretDouble = 0;
-        Integer middle = (Integer) previousEdge.getTarget().getIndex();
-        Node<Integer> nodeLocation = graph.getNode(middle);
-        for (Edge<Integer, Transport> e : graph.getEdgesFrom(nodeLocation)) {
-           normalTicket = encodeTicket(Ticket.fromTransport(e.getData()));
-           normalMove = player + normalTicket + e.getTarget().getIndex();
-           normalDouble = movePrevious * 100000 + normalMove;
-           addElementToArray(movesGenerate, normalDouble);
-           secretMove = player + secretTicket + e.getTarget().getIndex();
-           secretDouble = movePrevious * 100000 + secretMove;
-           addElementToArray(movesGenerate, secretDouble);
-        }
-        // System.out.println("All double generated moves: ");
-        // for (int i = 0; i < movesGenerate[0]; ++i) {
-        //    System.out.print(movesGenerate[i] + " ");
-        // }
-        // System.out.println("");
     }
 
 	public boolean hasTickets(PlayerData player, Ticket ticket) {

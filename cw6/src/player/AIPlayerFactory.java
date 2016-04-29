@@ -2,6 +2,7 @@ package player;
 
 import net.*;
 import scotlandyard.*;
+import graph.*;
 
 import java.io.InputStream;
 import java.io.BufferedInputStream;
@@ -19,21 +20,41 @@ import java.util.*;
  */
 public class AIPlayerFactory implements PlayerFactory {
 
-    private int distancesByTickets[][][][][];
     private String graphFilename;
     private List<Spectator> spectators = new ArrayList<Spectator>();
+    private ScotlandYardView view;
+    private ScotlandYardGraph graph;
     private int distances[][];
+    private int generatedMoves[][];
+
+    private final static Colour[] playerColours = {
+        Colour.Black,
+        Colour.Blue,
+        Colour.Green,
+        Colour.Red,
+        Colour.White,
+        Colour.Yellow
+    };
+    public final static Ticket[] ticketType = {
+        Ticket.Taxi,
+        Ticket.Bus,
+        Ticket.Underground,
+        Ticket.Secret,
+        Ticket.Double
+    };
+
     @Override
     public Player getPlayer(Colour colour, ScotlandYardView view, String mapFilename) {
         //TODO: Update this with your AI implementation.
         System.out.println(mapFilename);
-        distancesByTickets = new int[201][201][12][9][5];
         distances = new int[201][201];
-        testEfficiency.test2();
+        generatedMoves = new int[201][501];
+        //testEfficiency.test2();
+        this.view = view;
         ready();
         //testEfficiency.test1();
         System.out.println("Creating " + colour + " random player.\n");
-        AIPlayer aiPlayer = new AIPlayer(view, mapFilename, colour, distancesByTickets, distances);
+        AIPlayer aiPlayer = new AIPlayer(view, mapFilename, colour, distances, generatedMoves);
         addSpectator(aiPlayer);
         return aiPlayer;
     }
@@ -63,25 +84,6 @@ public class AIPlayerFactory implements PlayerFactory {
         this.graphFilename = "graph.txt";
         //File file = new File("lookup-node-rank.txt");
         File file = new File("lookup-node-distances.txt");
-        // try {
-        //     //Scanner reader = new Scanner(file);
-        //     BufferedInputStream bis = new BufferedInputStream(new FileInputStream("lookup-node-rank.txt"));
-        //     for (int source = 1; source < 200; ++source) {
-        //         System.out.println("Reading source: " + source);
-        //         for (int destination = 1; destination < 200; ++destination) {
-        //             for (int taxiTickets = 0; taxiTickets < 12; ++taxiTickets) {
-        //                 for (int busTickets = 0; busTickets < 9; ++busTickets) {
-        //                     for (int ugTickets = 0; ugTickets < 5; ++ugTickets) {
-        //                         distancesByTickets[source][destination][taxiTickets][busTickets][ugTickets]
-        //                             = readInt(bis);//reader.nextInt();
-        //                     }
-        //                 }
-        //             }
-        //         }
-        //     }
-        // } catch (IOException e) {
-        //     System.out.println("Error:\nError creating Scanner.");
-        // }
         try {
             //Scanner reader = new Scanner(file);
             BufferedInputStream bis = new BufferedInputStream(new FileInputStream("lookup-node-distances.txt"));
@@ -115,6 +117,16 @@ public class AIPlayerFactory implements PlayerFactory {
         // } catch (IOException e) {
         //     System.out.println("\nError caught while creating PrintWriter");
         // }
+        file = new File("generated-moves.txt");
+        try {
+            PrintWriter writer = new PrintWriter(file, "UTF-8");
+            //distances = new int[201][201];
+            this.graph = makeGraph(graphFilename);
+            generateMoves();
+        } catch (IOException e) {
+            System.out.println("\nError caught while creating PrintWriter");
+        }
+        /* FIRST  */
         /*try {
             PrintWriter writer = new PrintWriter(file, "UTF-8");
             distancesByTickets = new int[201][201][12][9][5];
@@ -152,8 +164,120 @@ public class AIPlayerFactory implements PlayerFactory {
         } catch (IOException e) {
             System.out.println("\nError caught while creating PrintWriter");
         }*/
+        // try {
+        //     //Scanner reader = new Scanner(file);
+        //     BufferedInputStream bis = new BufferedInputStream(new FileInputStream("lookup-node-rank.txt"));
+        //     for (int source = 1; source < 200; ++source) {
+        //         System.out.println("Reading source: " + source);
+        //         for (int destination = 1; destination < 200; ++destination) {
+        //             for (int taxiTickets = 0; taxiTickets < 12; ++taxiTickets) {
+        //                 for (int busTickets = 0; busTickets < 9; ++busTickets) {
+        //                     for (int ugTickets = 0; ugTickets < 5; ++ugTickets) {
+        //                         distancesByTickets[source][destination][taxiTickets][busTickets][ugTickets]
+        //                             = readInt(bis);//reader.nextInt();
+        //                     }
+        //                 }
+        //             }
+        //         }
+        //     }
+        // } catch (IOException e) {
+        //     System.out.println("Error:\nError creating Scanner.");
+        // }
     }
 
+    // Takes an array and an element as parameter and adds the element
+    // to the array.
+    private void addElementToArray(int[] a, int e) {
+       a[ a[0] + 1 ] = e;
+       ++a[0];
+    }
+
+    private ScotlandYardGraph makeGraph(String graphFilename) {
+        ScotlandYardGraphReader graphRead = new ScotlandYardGraphReader();
+        ScotlandYardGraph graph = new ScotlandYardGraph();
+        try {
+            graph = graphRead.readGraph(graphFilename);
+        } catch(IOException e) {
+            //TODO maybe: handle exception
+        }
+        return graph;
+    }
+
+    // Generates all possible moves(encoded form) for a player given a location.
+    private void generateMoves() {
+        for (int location = 1; location < 200; ++location) {
+            System.out.println("Generating moves for location: " + location);
+            generatedMoves[location][0] = 0;
+            int player = encodeColour(Colour.Black);
+            int normalTicket = 0;
+            int secretTicket = encodeTicket(Ticket.Secret);
+            int normalMove = 0;
+            int secretMove = 0;
+            Node<Integer> nodeLocation = graph.getNode(location);
+            // System.out.println("\nGenerating moves.");
+            for (Edge<Integer, Transport> e : graph.getEdgesFrom(nodeLocation)) {
+               //TODO: lookup for Transport to Ticket
+               normalTicket = encodeTicket(Ticket.fromTransport(e.getData()));
+               normalMove = player + normalTicket + e.getTarget().getIndex();
+               //System.out.println("Adding normalMove: " + normalMove);
+               addElementToArray(generatedMoves[location], normalMove);
+        	   secretMove = player + secretTicket + e.getTarget().getIndex();
+        	   addElementToArray(generatedMoves[location], secretMove);
+        	   generateDoubleMoves(player, e, normalMove, generatedMoves[location]);
+        	   generateDoubleMoves(player, e, secretMove, generatedMoves[location]);
+            }
+        }
+        // System.out.println("All generated moves: ");
+        // for (int i = 0; i < generatedMoves[0]; ++i) {
+        //     System.out.print(generatedMoves[i] + " ");
+        // }
+        // System.out.println("");
+    }
+
+    // Generates all double moves given a player, previous edge and previous move.
+    // Double moves are two single moves concatenated.
+    private void generateDoubleMoves(int player, Edge previousEdge, int movePrevious, int[] generatedMoves) {
+        int normalTicket = 0;
+        int secretTicket = encodeTicket(Ticket.Secret);
+        int normalMove = 0;
+        int secretMove = 0;
+        int normalDouble = 0;
+        int secretDouble = 0;
+        Integer middle = (Integer) previousEdge.getTarget().getIndex();
+        Node<Integer> nodeLocation = graph.getNode(middle);
+        for (Edge<Integer, Transport> e : graph.getEdgesFrom(nodeLocation)) {
+           normalTicket = encodeTicket(Ticket.fromTransport(e.getData()));
+           normalMove = player + normalTicket + e.getTarget().getIndex();
+           normalDouble = movePrevious * 100000 + normalMove;
+           addElementToArray(generatedMoves, normalDouble);
+           secretMove = player + secretTicket + e.getTarget().getIndex();
+           secretDouble = movePrevious * 100000 + secretMove;
+           addElementToArray(generatedMoves, secretDouble);
+        }
+        // System.out.println("All double generated moves: ");
+        // for (int i = 0; i < generatedMoves[0]; ++i) {
+        //    System.out.print(generatedMoves[i] + " ");
+        // }
+        // System.out.println("");
+    }
+
+    // Converts a colour into the Move form.
+    public int encodeColour(Colour colour) {
+       for (int i = 0; i < 6; ++i) {
+           if (playerColours[i] == colour)
+                return (i + 1) * 10000;
+       }
+       return -1;
+    }
+
+    // Converts a ticket into the Move form.
+    public int encodeTicket(Ticket ticket) {
+        for (int i = 0; i < 5; ++i) {
+            if (ticketType[i] == ticket)
+                return (i + 1) * 1000;
+        }
+        return -1;
+    }
 
     private void addSpectator(Spectator aiPlayer) {
         spectators.add(aiPlayer);
