@@ -26,6 +26,7 @@ public class AIPlayerFactory implements PlayerFactory {
     private ScotlandYardGraph graph;
     private int distances[][];
     private int generatedMoves[][];
+    private int onlyTaxiLinks[];
 
     private final static Colour[] playerColours = {
         Colour.Black,
@@ -47,14 +48,19 @@ public class AIPlayerFactory implements PlayerFactory {
     public Player getPlayer(Colour colour, ScotlandYardView view, String mapFilename) {
         //TODO: Update this with your AI implementation.
         System.out.println(mapFilename);
+        onlyTaxiLinks = new int[200];
         distances = new int[201][201];
         generatedMoves = new int[201][501];
         //testEfficiency.test2();
         this.view = view;
         ready();
+        gettingTaxiLinks();
+        // for(int i = 0; i < 200; i++) {
+        //     System.out.println("Node: " + i + " only taxi: " + onlyTaxiLinks[i]);
+        // }
         //testEfficiency.test1();
         System.out.println("Creating " + colour + " random player.\n");
-        AIPlayer aiPlayer = new AIPlayer(view, mapFilename, colour, distances, generatedMoves);
+        AIPlayer aiPlayer = new AIPlayer(view, mapFilename, colour, distances, generatedMoves, onlyTaxiLinks);
         addSpectator(aiPlayer);
         return aiPlayer;
     }
@@ -84,18 +90,6 @@ public class AIPlayerFactory implements PlayerFactory {
         this.graphFilename = "graph.txt";
         //File file = new File("lookup-node-rank.txt");
         File file = new File("lookup-node-distances.txt");
-        try {
-            //Scanner reader = new Scanner(file);
-            BufferedInputStream bis = new BufferedInputStream(new FileInputStream("lookup-node-distances.txt"));
-            for (int source = 1; source < 200; ++source) {
-                System.out.println("Reading source: " + source);
-                for (int destination = 1; destination < 200; ++destination) {
-                    distances[source][destination] = readInt(bis);//reader.nextInt();
-                }
-            }
-        } catch (IOException e) {
-            System.out.println("Error:\nError creating Scanner.");
-        }
         // try {
         //     PrintWriter writer = new PrintWriter(file, "UTF-8");
         //     distances = new int[201][201];
@@ -113,10 +107,43 @@ public class AIPlayerFactory implements PlayerFactory {
         //             writer.print(distances[source][destination]);
         //             writer.print(" ");
         //         }
+        //         // if (source > 150) {
+        //         //     try {
+        //         //         Thread.sleep(1000);
+        //         //     } catch(InterruptedException ex) {
+        //         //         Thread.currentThread().interrupt();
+        //         //     }
+        //         // }
         //     }
+        //     writer.flush();
+        //     writer.close();
         // } catch (IOException e) {
+        //     try {
+        //         Thread.sleep(3000);
+        //     } catch(InterruptedException ex) {
+        //         Thread.currentThread().interrupt();
+        //     }
         //     System.out.println("\nError caught while creating PrintWriter");
         // }
+        try {
+            //Scanner reader = new Scanner(file);
+            BufferedInputStream bis = new BufferedInputStream(new FileInputStream("lookup-node-distances.txt"));
+            for (int source = 1; source < 200; ++source) {
+                // System.out.println("Reading source: " + source);
+                for (int destination = 1; destination < 200; ++destination) {
+                    distances[source][destination] = readInt(bis);//reader.nextInt();
+                    //System.out.print(source + " to " + destination + " is " + distances[source][destination]);
+                }
+                //System.out.println("\n");
+            }
+        } catch (IOException e) {
+            try {
+                Thread.sleep(3000);
+            } catch(InterruptedException ex) {
+                Thread.currentThread().interrupt();
+            }
+            System.out.println("Error:\nError creating Scanner.");
+        }
         file = new File("generated-moves.txt");
         try {
             PrintWriter writer = new PrintWriter(file, "UTF-8");
@@ -124,6 +151,11 @@ public class AIPlayerFactory implements PlayerFactory {
             this.graph = makeGraph(graphFilename);
             generateMoves();
         } catch (IOException e) {
+            try {
+                Thread.sleep(3000);
+            } catch(InterruptedException ex) {
+                Thread.currentThread().interrupt();
+            }
             System.out.println("\nError caught while creating PrintWriter");
         }
         /* FIRST  */
@@ -206,7 +238,7 @@ public class AIPlayerFactory implements PlayerFactory {
     // Generates all possible moves(encoded form) for a player given a location.
     private void generateMoves() {
         for (int location = 1; location < 200; ++location) {
-            System.out.println("Generating moves for location: " + location);
+            // System.out.println("Generating moves for location: " + location);
             generatedMoves[location][0] = 0;
             int player = encodeColour(Colour.Black);
             int normalTicket = 0;
@@ -233,7 +265,16 @@ public class AIPlayerFactory implements PlayerFactory {
         // }
         // System.out.println("");
     }
-
+    private void gettingTaxiLinks() {
+        for (Node<Integer> n : graph.getNodes()) {
+            onlyTaxiLinks[n.getIndex()] = 1;
+            for (Edge<Integer,Transport> e : graph.getEdgesFrom(n)) {
+                if (e.getData() != Transport.Taxi) {
+                    onlyTaxiLinks[n.getIndex()] = 0;
+                }
+            }
+        }
+    }
     // Generates all double moves given a player, previous edge and previous move.
     // Double moves are two single moves concatenated.
     private void generateDoubleMoves(int player, Edge previousEdge, int movePrevious, int[] generatedMoves) {

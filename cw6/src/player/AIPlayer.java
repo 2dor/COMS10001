@@ -25,7 +25,8 @@ public class AIPlayer implements Player, Spectator {
                     String graphFilename,
                     Colour player,
                     int distances[][],
-                    int generatedMoves[][]) {
+                    int generatedMoves[][],
+                    int onlyTaxiLinks[]) {
         //TODO: A better AI makes use of `view` and `graphFilename`.
 		this.view = view;
 		this.players = view.getPlayers();
@@ -34,7 +35,7 @@ public class AIPlayer implements Player, Spectator {
         ScotlandYardGraph graph = makeGraph(graphFilename);
         MapQueue<Integer,Token> queue = new ScotlandYardMapQueue<Integer,Token>();
         simulator = new Simulator(5, this.rounds, graph, queue, 42);
-        simulator.setSimulator(view, graphFilename, distances, generatedMoves);
+        simulator.setSimulator(view, graphFilename, distances, generatedMoves, onlyTaxiLinks);
         this.player = player;
     }
 
@@ -52,14 +53,18 @@ public class AIPlayer implements Player, Spectator {
     @Override
     public void notify(int location, List<Move> moves, Integer token, Receiver receiver) {
         //TODO: Some clever AI here ...
-		// System.out.println("Getting intelligent move");
+		System.out.println("\nGetting INTELLIGENT move");
+        if (view.getRound() == 0) {
+            System.out.println("\nSeting the detectives location\n");
+            simulator.setLocations();
+        }
         int[] currentConfigurationScore = new int[1];
         currentConfigurationScore[0] = 0;
         int level = 0;
         System.out.println("\nConfiguration before");
         System.out.println(currentConfigurationScore[0]);
         for (Integer i : simulator.mrXPossibleLocations) {
-            System.out.print(i + " ");
+            System.out.print(i + ", ");
         }
         System.out.println("");
         int bestScore = 0;
