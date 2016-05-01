@@ -53,7 +53,7 @@ public class AIPlayer implements Player, Spectator {
     @Override
     public void notify(int location, List<Move> moves, Integer token, Receiver receiver) {
         //TODO: Some clever AI here ...
-		// System.out.println("Getting intelligent move");
+		System.out.println("\nGetting INTELLIGENT move");
         if (view.getRound() == 0) {
             System.out.println("\nSeting the detectives location\n");
             simulator.setLocations();

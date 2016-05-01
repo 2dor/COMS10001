@@ -320,8 +320,6 @@ public class Simulator extends ScotlandYard {
         // for (int i = 1; i <= movesValid[level][0]; ++i) {
         //     System.out.println(movesValid[level][i] + " ");
         // }
-        int detective_score = 0;
-        int mrx_score = 0;
         // if (player == Colour.Black) {
         //     System.out.println("Printing moves for mr x");
         // }
@@ -347,12 +345,14 @@ public class Simulator extends ScotlandYard {
                     return bestMove;
                 }
             } else {
-                if (previousScore != Integer.MIN_VALUE && getDScore(bestScore) < getDScore(previousScore)) {
-                    // System.out.println("Pruning!");
-                    // System.out.println("bestScore: " + bestScore + " previousScore: " + previousScore);
-                    // System.out.println("Target: " + decodeDestination(movesValid[level][i - 1]));
-                    currentConfigurationScore[0] = bestScore;
-                    return bestMove;
+                if (player == Colour.Blue) { // AND previous player is Black
+                    if (previousScore != Integer.MIN_VALUE && getDScore(bestScore) < getDScore(previousScore)) {
+                        // System.out.println("Pruning!");
+                        // System.out.println("bestScore: " + bestScore + " previousScore: " + previousScore);
+                        // System.out.println("Target: " + decodeDestination(movesValid[level][i - 1]));
+                        currentConfigurationScore[0] = bestScore;
+                        return bestMove;
+                    }
                 }
             }
             mrXNewLocations.clear();
