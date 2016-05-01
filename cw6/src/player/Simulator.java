@@ -215,6 +215,7 @@ public class Simulator extends ScotlandYard {
         for (Integer loc : this.mrXPossibleLocations) {
             System.out.print(loc + ", ");
         }
+        System.out.println("\n");
         play(move);
     }
 
@@ -268,9 +269,9 @@ public class Simulator extends ScotlandYard {
          * was caught so we can end this branch of the minimax
          */
         if (currentConfigurationScore[0] == 0) {
-            System.out.println(getPlayer(Colour.Black).getLocation());
-            System.out.println("111 Level " + level + " " + player + " " + getPlayer(Colour.Black).getLocation());
-            System.out.println(occupiedNodes[getPlayer(Colour.Black).getLocation()]);
+            // System.out.println(getPlayer(Colour.Black).getLocation());
+            // System.out.println("111 Level " + level + " " + player + " " + getPlayer(Colour.Black).getLocation());
+            // System.out.println(occupiedNodes[getPlayer(Colour.Black).getLocation()]);
             return DUMMYMOVE;
         }
         Integer bestScore = 0;
@@ -325,6 +326,10 @@ public class Simulator extends ScotlandYard {
         //     System.out.println("Printing moves for mr x");
         // }
         for (int i = 1; i <= movesValid[level][0]; ++i) {
+            if (isMovePass(movesValid[level][i])) {
+                System.out.println("\n\nIn minimax, out of moves " + player + " " + encodeColour(player));
+                System.out.println("MovePass is " + movesValid[level][i]);
+            }
             // if (player == Colour.Black)  {
             //     System.out.println(movesValid[level][i]);
             // }
@@ -420,12 +425,12 @@ public class Simulator extends ScotlandYard {
             score = distances[getPlayerLocation(p)][location];
             bestScore = Math.min(bestScore, score);
 		}
-        if (bestScore == 0) {
-            System.out.println("Mrx " + location);
-            for (PlayerData p : players) {
-                System.out.println(p.getColour() + " " + p.getLocation() + " " + getPlayerLocation(p.getColour()));
-            }
-        }
+        // if (bestScore == 0) {
+        //     System.out.println("Mrx " + location);
+        //     for (PlayerData p : players) {
+        //         System.out.println(p.getColour() + " " + p.getLocation() + " " + getPlayerLocation(p.getColour()));
+        //     }
+        // }
 		return bestScore;
 	}
 
@@ -462,9 +467,12 @@ public class Simulator extends ScotlandYard {
         } else {
 		    colour = decodeColour(moveMade);
         }
-        if (getCurrentPlayer() == Colour.Black && rounds.get(currentRound + 1) == true) {
+        // System.out.println("Updating possible locations.....");
+        // System.out.println("Colour: " + colour + " currentRound: " + currentRound);
+        if (colour == Colour.Black && rounds.get(currentRound + 1) == true) {
             //clearing global list of Mr X possible locations
             //mrXLocation = getPlayerLocation(Colour.Black);
+            // System.out.println("Current round: " + (currentRound + 1));
             mrXLocation = decodeDestination(moveMade);
             locations.clear();
             locations.add(mrXLocation);
@@ -699,6 +707,7 @@ public class Simulator extends ScotlandYard {
         }
         /* add movePass */
 		if(movesValid[level][0] == 0 && col != Colour.Black){
+            System.out.println("\nIn validMoves, out of moves " + col + " " + encodeColour(col));
             addElementToArray(movesValid[level], encodeColour(col));
         }
         // System.out.println("In validMoves " + player + " at level " + level + "we thse moves");

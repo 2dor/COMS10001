@@ -55,6 +55,7 @@ public class AIPlayer implements Player, Spectator {
         //TODO: Some clever AI here ...
 		// System.out.println("Getting intelligent move");
         if (view.getRound() == 0) {
+            System.out.println("\nSeting the detectives location\n");
             simulator.setLocations();
         }
         int[] currentConfigurationScore = new int[1];
@@ -63,7 +64,7 @@ public class AIPlayer implements Player, Spectator {
         System.out.println("\nConfiguration before");
         System.out.println(currentConfigurationScore[0]);
         for (Integer i : simulator.mrXPossibleLocations) {
-            System.out.print(i + " ");
+            System.out.print(i + ", ");
         }
         System.out.println("");
         int bestScore = 0;
