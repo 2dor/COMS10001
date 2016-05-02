@@ -587,6 +587,12 @@ public class Simulator extends ScotlandYard {
 		return ticketType[ticket - 1];
 	}
 
+	/**
+    * Converts a move of type int into the move of type Move.
+    *
+    * @param move a int move which is to be coverted.
+    * @return a converted move of type Move.
+    */
 	public Move decodeMove(int move) {
 		if (isMoveTicket(move)) {
 			Move single = decodeMoveTicket(move);
@@ -603,12 +609,24 @@ public class Simulator extends ScotlandYard {
 		return pass;
 	}
 
+	/**
+    * Converts a single move of type int into the single move of type Move.
+    *
+    * @param move a single int move which is to be coverted.
+    * @return a converted single move of type Move.
+    */
 	public MoveTicket decodeMoveTicket(int move) {
 		return MoveTicket.instance(decodeColour(move),
 									 decodeTicket(move),
 									 decodeDestination(move));
 	}
 
+	/**
+    * Converts a move of type Move into the move of type int.
+    *
+    * @param move a Move move which is to be coverted.
+    * @return a converted move of type int.
+    */
 	public int encodeMove(Move move) {
 		if (move instanceof MoveTicket) {
 			MoveTicket moveSingle = (MoveTicket) move;
@@ -625,31 +643,64 @@ public class Simulator extends ScotlandYard {
 		return -1;
 	}
 
+	/**
+    * Converts a single move of type Move into the single move of type int.
+    *
+    * @param move a Move move which is to be coverted.
+    * @return a converted move of type int.
+    */
 	public int encodeMove(MoveTicket move) {
 		int player = encodeColour(move.colour);
 		int ticket = encodeTicket(move.ticket);
 		return player + ticket + move.target;
 	}
 
+	/**
+    * Converts a double move of type Move into the double move of type int.
+    *
+    * @param move a Move move which is to be coverted.
+    * @return a converted move of type int.
+    */
 	public int encodeMove(MoveDouble move) {
 		int move1 = encodeMove(move.move1);
 		int move2 = encodeMove(move.move2);
 		return move1 * 100000 + move2;
 	}
 
-    // Takes an array and an element as parameter and adds the element
-    // to the array.
+	/**
+    * Adds a given element into the given array.
+    *
+    * @param a an array in which we are adding the element.
+    * @return e an element to be added.
+    */
     public void addElementToArray(int[] a, int e) {
        a[ a[0] + 1 ] = e;
        ++a[0];
     }
 
+	/**
+    * Checks if a given player has a given ticket.
+    *
+    * @param player a PlayerData object for which we are checking if he has tickets.
+	* @param ticket a ticket type to be checked.
+    * @return true if given player contains a given ticker and false otherwise.
+    */
 	public boolean hasTickets(PlayerData player, Ticket ticket) {
         if (player.getTickets().get(ticket) == 0)
             return false;
         return true;
     }
 
+	/**
+    * Generates the valid moves for a given player.
+    *
+    * @param col a colour of the player for which we are generating the moves.
+	* @param level a level of depth in the minimax.
+    * @param dbl a boolean which if true double moves are generated.
+    * @param xScore mrX's current score.
+    * @param location a location of the player.
+    * @param mrXOldLocations a set of possible locations mrX could be at.
+    */
     public void validMoves(Colour col, int level, boolean dbl, int xScore, int location, HashSet<Integer> mrXOldLocations) {
 		movesValid[level][0] = 0;
 		PlayerData player = getPlayer(col);
@@ -694,6 +745,14 @@ public class Simulator extends ScotlandYard {
         }
 	}
 
+	/**
+	* Generates the valid double moves for a given player.
+	*
+	* @param player a player for which we are generating the moves.
+	* @param previousEdge a graph edge of the previous move.
+	* @param movePrevious an encoded previous move.
+	* @param level a level of depth in the minimax.
+	*/
 	public void validDoubleMoves(PlayerData player, Edge<Integer, Transport> previousEdge, int movePrevious, int level) {
 		int colour = encodeColour(player.getColour());
 		int normalTicket = 0;
