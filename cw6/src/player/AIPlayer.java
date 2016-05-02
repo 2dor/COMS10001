@@ -93,7 +93,7 @@ public class AIPlayer implements Player, Spectator {
     @Override
     public void notify(Move move) {
         //System.out.println("I get the move!");
-        simulator.sendMove(move);
+        simulator.receiveMove(move);
     }
 
 }
