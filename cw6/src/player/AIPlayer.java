@@ -6,12 +6,9 @@ import java.util.*;
 import java.io.IOException;
 
 /**
- * The RandomPlayer class is an example of a very simple AI that
- * makes a random move from the given set of moves. Since the
- * RandomPlayer implements Player, the only required method is
- * notify(), which takes the location of the player and the
- * list of valid moves. The return value is the desired move,
- * which must be one from the list.
+ * The AIPlayer is a means of communication between the server and the Simulator,
+ * which returns and intelligent move. In this class, we initialize the the
+ * simulator and use its minimax() method to get the best move.
  */
 public class AIPlayer implements Player, Spectator {
 	private ScotlandYardView view;
@@ -21,13 +18,23 @@ public class AIPlayer implements Player, Spectator {
     private Simulator simulator;
     private Colour player;
 
+    /**
+     * Constructs a new AIPlayer object which implements the Player and Spectator.
+     * interfaces.
+     *
+     * @param view the ScotlandYardView that provides game information.
+     * @param graphFilename the name of the file containing the graph components.
+     * @param player the colour of this AI player
+     * @param distances two dimensional array containing distances from each node to every other node on the graph.
+     * @param generatedMoves two dimensional array storing generated moves at each level of the minimax.
+     * @param onlyTaxiLinks an array indexed by graph nodes containing 1 if the node has just taxi links and 0 otherwise.
+     */
     public AIPlayer(ScotlandYardView view,
                     String graphFilename,
                     Colour player,
                     int distances[][],
                     int generatedMoves[][],
                     int onlyTaxiLinks[]) {
-        //TODO: A better AI makes use of `view` and `graphFilename`.
 		this.view = view;
 		this.players = view.getPlayers();
 		this.rounds = view.getRounds();
@@ -39,34 +46,34 @@ public class AIPlayer implements Player, Spectator {
         this.player = player;
     }
 
+    /**
+     * Initialises the simulator.
+     *
+     * @param graphFilename the name of the file containing the graph components.
+     * @return a ScotlandYardGraph generated from a local file.
+     */
     private ScotlandYardGraph makeGraph(String graphFilename) {
         ScotlandYardGraphReader graphRead = new ScotlandYardGraphReader();
         ScotlandYardGraph graph = new ScotlandYardGraph();
         try {
             graph = graphRead.readGraph(graphFilename);
         } catch(IOException e) {
-            //TODO maybe: handle exception
+            System.out.println("Error creating ScotlandYardGraph from file.");
         }
         return graph;
     }
 
+    /**
+     * Used to call the minimax to get the best move and then send it to the server.
+     */
     @Override
     public void notify(int location, List<Move> moves, Integer token, Receiver receiver) {
-        //TODO: Some clever AI here ...
-		System.out.println("\nGetting INTELLIGENT move");
         if (view.getRound() == 0) {
-            System.out.println("\nSeting the detectives location\n");
             simulator.setLocations();
         }
         int[] currentConfigurationScore = new int[1];
         currentConfigurationScore[0] = 0;
         int level = 0;
-        System.out.println("\nConfiguration before");
-        System.out.println(currentConfigurationScore[0]);
-        for (Integer i : simulator.mrXPossibleLocations) {
-            System.out.print(i + ", ");
-        }
-        System.out.println("");
         int bestScore = 0;
         /* We set these values because the first ply is a special case where
          * you should NOT be allowed to prune. Therefore, you can only prune
@@ -77,22 +84,12 @@ public class AIPlayer implements Player, Spectator {
         else
             bestScore = Integer.MIN_VALUE;
         int move = simulator.minimax(Colour.Black, location, level, currentConfigurationScore, bestScore, simulator.mrXPossibleLocations);
-        System.out.println("Printing locations after minimax:");
-        for (Integer loc : simulator.mrXPossibleLocations) {
-            System.out.print(loc + ", ");
-        }
         Move bestMove = simulator.decodeMove(move);
-        System.out.println("\nConfiguration score after");
-        System.out.println(currentConfigurationScore[0]);
-        // Collections.shuffle(moves);
-        // Move bestMove = moves.get(0);
-        System.out.println("Playing intelligent move" + bestMove);
         receiver.playMove(bestMove, token);
     }
 
     @Override
     public void notify(Move move) {
-        //System.out.println("I get the move!");
         simulator.receiveMove(move);
     }
 
