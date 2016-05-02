@@ -44,6 +44,14 @@ public class AIPlayerFactory implements PlayerFactory {
         Ticket.Double
     };
 
+    /**
+     * Returns an AIPlayer for Mr. X and adds it to the list of spectators.
+     *
+     * @param colour the colour of the AIPlayer to be instantiated.
+     * @param view the ScotlandYardView that provides game information.
+     * @param graphFilename the name of the file containing the graph components.
+     * @return an AIPlayer.
+     */
     @Override
     public Player getPlayer(Colour colour, ScotlandYardView view, String mapFilename) {
         //TODO: Update this with your AI implementation.
@@ -51,22 +59,20 @@ public class AIPlayerFactory implements PlayerFactory {
         onlyTaxiLinks = new int[200];
         distances = new int[201][201];
         generatedMoves = new int[201][501];
-        //testEfficiency.test2();
         this.view = view;
         ready();
         gettingTaxiLinks();
-        // for(int i = 0; i < 200; i++) {
-        //     System.out.println("Node: " + i + " only taxi: " + onlyTaxiLinks[i]);
-        // }
-        //testEfficiency.test1();
-        System.out.println("Creating " + colour + " random player.\n");
+        System.out.println("Creating " + colour + " intelligent player.\n");
         AIPlayer aiPlayer = new AIPlayer(view, mapFilename, colour, distances, generatedMoves, onlyTaxiLinks);
         addSpectator(aiPlayer);
         return aiPlayer;
     }
     /*
-     * parses the InputStream and returns an int
-    */
+     * Parses the InputStream and returns an int
+     *
+     * @param in an InputStream
+     * @return a parsed int
+     */
     private static int readInt(InputStream in) throws IOException {
         int result = 0;
         boolean flagDigit = false;
@@ -84,9 +90,11 @@ public class AIPlayerFactory implements PlayerFactory {
         return result;
     }
 
+    /*
+     * Used to read the precomputed distances and generated moves.
+     */
     @Override
     public void ready() {
-        //TODO: Any code you need to execute when the game starts, put here.
         this.graphFilename = "graph.txt";
         //File file = new File("lookup-node-rank.txt");
         File file = new File("lookup-node-distances.txt");
@@ -126,15 +134,11 @@ public class AIPlayerFactory implements PlayerFactory {
         //     System.out.println("\nError caught while creating PrintWriter");
         // }
         try {
-            //Scanner reader = new Scanner(file);
             BufferedInputStream bis = new BufferedInputStream(new FileInputStream("lookup-node-distances.txt"));
             for (int source = 1; source < 200; ++source) {
-                // System.out.println("Reading source: " + source);
                 for (int destination = 1; destination < 200; ++destination) {
-                    distances[source][destination] = readInt(bis);//reader.nextInt();
-                    //System.out.print(source + " to " + destination + " is " + distances[source][destination]);
+                    distances[source][destination] = readInt(bis);/* reader.nextInt(); */
                 }
-                //System.out.println("\n");
             }
         } catch (IOException e) {
             try {
@@ -147,7 +151,6 @@ public class AIPlayerFactory implements PlayerFactory {
         file = new File("generated-moves.txt");
         try {
             PrintWriter writer = new PrintWriter(file, "UTF-8");
-            //distances = new int[201][201];
             this.graph = makeGraph(graphFilename);
             generateMoves();
         } catch (IOException e) {
@@ -158,7 +161,7 @@ public class AIPlayerFactory implements PlayerFactory {
             }
             System.out.println("\nError caught while creating PrintWriter");
         }
-        /* FIRST  */
+        /* FIRST VERSION OF DISTANCES BY TICKETS */
         /*try {
             PrintWriter writer = new PrintWriter(file, "UTF-8");
             distancesByTickets = new int[201][201][12][9][5];
@@ -217,25 +220,40 @@ public class AIPlayerFactory implements PlayerFactory {
         // }
     }
 
-    // Takes an array and an element as parameter and adds the element
-    // to the array.
+    /**
+     * Adds an element to the end of an array. The zero'th element in the number
+     * of components in the array.
+     *
+     * @param a an array of ints.
+     * @param e the element to be added at the end of the array.
+     */
     private void addElementToArray(int[] a, int e) {
        a[ a[0] + 1 ] = e;
        ++a[0];
     }
 
+    /**
+     * Initialises the simulator.
+     *
+     * @param graphFilename the name of the file containing the graph components.
+     * @return a ScotlandYardGraph generated from a local file.
+     */
     private ScotlandYardGraph makeGraph(String graphFilename) {
         ScotlandYardGraphReader graphRead = new ScotlandYardGraphReader();
         ScotlandYardGraph graph = new ScotlandYardGraph();
         try {
             graph = graphRead.readGraph(graphFilename);
         } catch(IOException e) {
-            //TODO maybe: handle exception
+            System.out.println("Error creating ScotlandYardGraph from file.");
         }
         return graph;
     }
 
-    // Generates all possible moves(encoded form) for a player given a location.
+    /**
+     * Generates all the moves for all positions on the map and stores them in
+     * a two-dimensional array.
+     *
+     */
     private void generateMoves() {
         for (int location = 1; location < 200; ++location) {
             // System.out.println("Generating moves for location: " + location);
@@ -259,12 +277,12 @@ public class AIPlayerFactory implements PlayerFactory {
         	   generateDoubleMoves(player, e, secretMove, generatedMoves[location]);
             }
         }
-        // System.out.println("All generated moves: ");
-        // for (int i = 0; i < generatedMoves[0]; ++i) {
-        //     System.out.print(generatedMoves[i] + " ");
-        // }
-        // System.out.println("");
     }
+
+    /**
+     * Updates the onlyTaxiLinks array with 1 if a certain node location contains
+     * only taxi links, with 0 otherwise.
+     */
     private void gettingTaxiLinks() {
         for (Node<Integer> n : graph.getNodes()) {
             onlyTaxiLinks[n.getIndex()] = 1;
@@ -275,8 +293,15 @@ public class AIPlayerFactory implements PlayerFactory {
             }
         }
     }
-    // Generates all double moves given a player, previous edge and previous move.
-    // Double moves are two single moves concatenated.
+    /**
+     * Generates all double moves given a player, previous edge and previous move.
+     * Double moves are two single moves concatenated.
+     *
+     * @param player encoded player int.
+     * @param previousEdge the previous edge
+     * @param movePrevious encoded previous move int
+     * @param generatedMoves reference to a 1-dimensional array for a certain location
+     */
     private void generateDoubleMoves(int player, Edge previousEdge, int movePrevious, int[] generatedMoves) {
         int normalTicket = 0;
         int secretTicket = encodeTicket(Ticket.Secret);
@@ -295,14 +320,14 @@ public class AIPlayerFactory implements PlayerFactory {
            secretDouble = movePrevious * 100000 + secretMove;
            addElementToArray(generatedMoves, secretDouble);
         }
-        // System.out.println("All double generated moves: ");
-        // for (int i = 0; i < generatedMoves[0]; ++i) {
-        //    System.out.print(generatedMoves[i] + " ");
-        // }
-        // System.out.println("");
     }
 
-    // Converts a colour into the Move form.
+    /**
+    * Encodes the colour of the player into the move form.
+    *
+    * @param colour a colour of the player to be encoded.
+    * @return a colour of the player in the int form.
+    */
     public int encodeColour(Colour colour) {
        for (int i = 0; i < 6; ++i) {
            if (playerColours[i] == colour)
@@ -311,7 +336,12 @@ public class AIPlayerFactory implements PlayerFactory {
        return -1;
     }
 
-    // Converts a ticket into the Move form.
+    /**
+    * Encodes the colour into the move form.
+    *
+    * @param ticket a ticket to be encoded.
+    * @return a ticket in the int form.
+    */
     public int encodeTicket(Ticket ticket) {
         for (int i = 0; i < 5; ++i) {
             if (ticketType[i] == ticket)
@@ -320,6 +350,11 @@ public class AIPlayerFactory implements PlayerFactory {
         return -1;
     }
 
+    /**
+    * Adds a spectator to the list of spectators.
+    *
+    * @param aiPlayer Spectator to be added.
+    */
     private void addSpectator(Spectator aiPlayer) {
         spectators.add(aiPlayer);
     }
