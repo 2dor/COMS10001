@@ -504,7 +504,7 @@ public class Simulator extends ScotlandYard {
     * @return the index of a ticket used in the given move.
     */
 	private int getSingleTicket(int move) {
-		return (move - (move / 10000) * 10000) - decodeDestination(move)  / 1000;
+		return (move - (move / 10000) * 10000) - decodeDestination(move);
 	}
 
     /**
@@ -583,7 +583,7 @@ public class Simulator extends ScotlandYard {
     * @return a colour of the player who made the given move.
     */
 	public Ticket decodeTicket(int move) {
-		int ticket = getSingleTicket(move);
+		int ticket = getSingleTicket(move) / 1000;
 		return ticketType[ticket - 1];
 	}
 
