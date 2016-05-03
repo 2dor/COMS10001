@@ -4,7 +4,7 @@ import java.util.*;
 
 public class Dijkstra {
 
-    private final int INF = 2 * 0x3f3f3f3f;
+    private final int INF = 0x3f3f3f3f;//roughly 1 billion
     private List<Integer> pathToSource;
     private int[] bestDist;
     private int[] previousNode;
