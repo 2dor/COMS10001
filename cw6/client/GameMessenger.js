@@ -72,11 +72,11 @@ GameMessenger.prototype.interpretReady = function (messageReady) {
 	var currentRound = messageReady['current_round'];
 	guiConnector.setTicketView(rounds,currentRound);
 	var colours = messageReady.colours;
-	for (var i = 0; i < colours.length; i++) {
-		if (AIPlayers.length > 0 && aiMessenger.isConnected() && AIPlayers.indexOf(colours[i]) !== -1){
+	//for (var i = 0; i < colours.length; i++) {
+		if (AIPlayers.length > 0 && aiMessenger && aiMessenger.isConnected()){
 			aiMessenger.sendMessage(messageReady);
 		}
-	}
+	//}
 	//why does this work?
 	guiConnector.setSetUpViewVisible(false);
 };
@@ -103,9 +103,6 @@ GameMessenger.prototype.interpretNotify = function (messageNotify) {
 		var ticket = messageNotify.move.ticket;
         // notify the ai (if it's connected and there is at least one AI player in the game)
         // regardless of the player who moved
-        if (aiMessenger.isConnected() && AIPlayers.length > 0) {
-            aiMessenger.sendMessage(messageNotify);
-        }
 		if (messageNotify.move_type == "MoveDouble") {
 			guiConnector.removeTicket(player, "Double");
 		} else {
@@ -116,6 +113,9 @@ GameMessenger.prototype.interpretNotify = function (messageNotify) {
 			guiConnector.updateTicketView(ticket, location);
 		}
 	}
+    if (aiMessenger && aiMessenger.isConnected() && AIPlayers.length > 0 /*&& AIPlayers.indexOf(messageNotify.move.colour) !== -1*/) {
+        aiMessenger.sendMessage(messageNotify);
+    }
 };
 
 /**
@@ -162,7 +162,7 @@ GameMessenger.prototype.interpretConnection = function (messageConnection) {
  */
 GameMessenger.prototype.interpretNotifyTurn = function (messageNotifyTurn) {
 	var colour = messageNotifyTurn.valid_moves[0].move.colour;
-	if (AIPlayers.length > 0 && aiMessenger.isConnected() && AIPlayers.indexOf(colour) !== -1) {
+	if (AIPlayers.length > 0 && aiMessenger && aiMessenger.isConnected() && AIPlayers.indexOf(colour) !== -1) {
 		guiConnector.startTurn(messageNotifyTurn, true);
         aiMessenger.sendMessage(messageNotifyTurn);
 	} else {
