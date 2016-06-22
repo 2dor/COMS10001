@@ -54,7 +54,6 @@ public class AIPlayerFactory implements PlayerFactory {
      */
     @Override
     public Player getPlayer(Colour colour, ScotlandYardView view, String mapFilename) {
-        //TODO: Update this with your AI implementation.
         System.out.println(mapFilename);
         onlyTaxiLinks = new int[200];
         distances = new int[201][201];
@@ -227,7 +226,7 @@ public class AIPlayerFactory implements PlayerFactory {
      * @param a an array of ints.
      * @param e the element to be added at the end of the array.
      */
-    private void addElementToArray(int[] a, int e) {
+    public static void addElementToArray(int[] a, int e) {
        a[ a[0] + 1 ] = e;
        ++a[0];
     }
@@ -266,7 +265,6 @@ public class AIPlayerFactory implements PlayerFactory {
             Node<Integer> nodeLocation = graph.getNode(location);
             // System.out.println("\nGenerating moves.");
             for (Edge<Integer, Transport> e : graph.getEdgesFrom(nodeLocation)) {
-               //TODO: lookup for Transport to Ticket
                normalTicket = encodeTicket(Ticket.fromTransport(e.getData()));
                normalMove = player + normalTicket + e.getTarget().getIndex();
                //System.out.println("Adding normalMove: " + normalMove);
@@ -361,13 +359,11 @@ public class AIPlayerFactory implements PlayerFactory {
 
     @Override
     public List<Spectator> getSpectators(ScotlandYardView view) {
-        //TODO: Add your AI here if you want it to be a spectator.
         return spectators;
     }
 
     @Override
     public void finish() {
-        //TODO: Any code you need to execute when the game ends, put here.
     }
 
 }

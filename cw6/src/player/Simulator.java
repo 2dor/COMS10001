@@ -119,7 +119,6 @@ public class Simulator extends ScotlandYard {
             if (p.getColour() == Colour.Black) continue;
             p.setLocation(view.getPlayerLocation(p.getColour()));
             occupiedNodes[view.getPlayerLocation(p.getColour())] = true;
-            System.out.println(p.getColour() + " " + p.getLocation());
         }
     }
 
@@ -326,10 +325,6 @@ public class Simulator extends ScotlandYard {
             bestScore = Integer.MAX_VALUE;
         HashSet<Integer> mrXNewLocations = new HashSet<Integer>();
         for (int i = 1; i <= movesValid[level][0]; ++i) {
-            if (isMovePass(movesValid[level][i])) {
-                System.out.println("\n\nIn minimax, out of moves " + player + " " + encodeColour(player));
-                System.out.println("MovePass is " + movesValid[level][i]);
-            }
             if (player == Colour.Black) {
                 if (previousScore != Integer.MAX_VALUE && getXScore(bestScore) > getXScore(previousScore)) {
                     currentConfigurationScore[0] = bestScore;
@@ -444,7 +439,7 @@ public class Simulator extends ScotlandYard {
     */
     private void updatePossibleLocations(int moveMade, HashSet<Integer> locations) {
         Colour colour = decodeColour(moveMade);
-        if (colour == Colour.Black && rounds.get(currentRound + 1) == true) {
+        if (colour == Colour.Black && rounds.get(currentRound + 1)) {
             //clearing global list of Mr X possible locations
             mrXLocation = decodeDestination(moveMade);
             locations.clear();
@@ -673,10 +668,10 @@ public class Simulator extends ScotlandYard {
     * @param a an array in which we are adding the element.
     * @return e an element to be added.
     */
-    public void addElementToArray(int[] a, int e) {
-       a[ a[0] + 1 ] = e;
-       ++a[0];
-    }
+    // public void addElementToArray(int[] a, int e) {
+    //    a[ a[0] + 1 ] = e;
+    //    ++a[0];
+    // }
 
 	/**
     * Checks if a given player has a given ticket.
@@ -715,14 +710,14 @@ public class Simulator extends ScotlandYard {
             normalTicket = encodeTicket(Ticket.fromTransport(e.getData()));
             normalMove = colour + normalTicket + e.getTarget().getIndex();
             if (hasTickets(player, Ticket.fromTransport(e.getData())) && !occupiedNodes[e.getTarget().getIndex()]) {
-                addElementToArray(movesValid[level], normalMove);
+                AIPlayerFactory.addElementToArray(movesValid[level], normalMove);
             }
             if (col == Colour.Black) {
                 secretMove = colour + secretTicket + e.getTarget().getIndex();
                 if (hasTickets(player, Ticket.Secret) && !occupiedNodes[e.getTarget().getIndex()]
                 && getRound() >= 3 && !view.getRounds().get(getRound()) && mrXOldLocations.size() < 5
                 && xScore < 300 && onlyTaxiLinks[location] == 0) {
-                    addElementToArray(movesValid[level], secretMove);
+                    AIPlayerFactory.addElementToArray(movesValid[level], secretMove);
                 }
                 if (dbl && hasTickets(player, Ticket.Double)) {
                     player.removeTicket(Ticket.fromTransport(e.getData()));
@@ -738,10 +733,9 @@ public class Simulator extends ScotlandYard {
                 }
             }
         }
-        /* add movePass */
+        // If a detective has no valid moves, add MovePass.
 		if(movesValid[level][0] == 0 && col != Colour.Black){
-            System.out.println("\nIn validMoves, out of moves " + col + " " + encodeColour(col));
-            addElementToArray(movesValid[level], encodeColour(col));
+            AIPlayerFactory.addElementToArray(movesValid[level], encodeColour(col));
         }
 	}
 
@@ -768,12 +762,12 @@ public class Simulator extends ScotlandYard {
             if (hasTickets(player, Ticket.fromTransport(e.getData())) && !occupiedNodes[middle] && !occupiedNodes[e.getTarget().getIndex()]) {
 				normalMove = colour + normalTicket + e.getTarget().getIndex();
 				normalDouble = movePrevious * 100000 + normalMove;
-				addElementToArray(movesValid[level], normalDouble);
+				AIPlayerFactory.addElementToArray(movesValid[level], normalDouble);
             }
 			if (hasTickets(player, Ticket.Secret) && !occupiedNodes[middle] && !occupiedNodes[e.getTarget().getIndex()]) {
             	secretMove = colour + secretTicket + e.getTarget().getIndex();
             	secretDouble = movePrevious * 100000 + secretMove;
-            	addElementToArray(movesValid[level], secretDouble);
+            	AIPlayerFactory.addElementToArray(movesValid[level], secretDouble);
         	}
 		}
 	}
