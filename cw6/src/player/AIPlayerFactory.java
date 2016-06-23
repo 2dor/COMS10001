@@ -20,9 +20,7 @@ import java.util.*;
  */
 public class AIPlayerFactory implements PlayerFactory {
 
-    private String graphFilename;
     private List<Spectator> spectators = new ArrayList<Spectator>();
-    private ScotlandYardView view;
     private ScotlandYardGraph graph;
     private int distances[][];
     private int generatedMoves[][];
@@ -49,16 +47,14 @@ public class AIPlayerFactory implements PlayerFactory {
      *
      * @param colour the colour of the AIPlayer to be instantiated.
      * @param view the ScotlandYardView that provides game information.
-     * @param graphFilename the name of the file containing the graph components.
+     * @param mapFilename the name of the file containing the graph components.
      * @return an AIPlayer.
      */
     @Override
     public Player getPlayer(Colour colour, ScotlandYardView view, String mapFilename) {
-        System.out.println(mapFilename);
         onlyTaxiLinks = new int[200];
         distances = new int[201][201];
         generatedMoves = new int[201][501];
-        this.view = view;
         ready();
         gettingTaxiLinks();
         System.out.println("Creating " + colour + " intelligent player.\n");
@@ -75,7 +71,7 @@ public class AIPlayerFactory implements PlayerFactory {
     private static int readInt(InputStream in) throws IOException {
         int result = 0;
         boolean flagDigit = false;
-        int c = 0;
+        int c;
         while ((c = in.read()) != -1) {
             if ('0' <= c && c <= '9') {
                 flagDigit = true;
@@ -94,44 +90,8 @@ public class AIPlayerFactory implements PlayerFactory {
      */
     @Override
     public void ready() {
-        this.graphFilename = "graph.txt";
-        //File file = new File("lookup-node-rank.txt");
+        String graphFilename = "graph.txt";
         File file = new File("lookup-node-distances.txt");
-        // try {
-        //     PrintWriter writer = new PrintWriter(file, "UTF-8");
-        //     distances = new int[201][201];
-        //     Dijkstra dijkstra = new Dijkstra(graphFilename);
-        //     List<Integer> route = new ArrayList<Integer>();
-        //     Map<Transport, Integer> tickets = new HashMap<Transport, Integer>();
-        //     for (int source = 1; source < 200; ++source) {
-        //         System.out.println("Computing Source: " + source);
-        //         //writer.println("Source " + source);
-        //         writer.print("\n");
-        //         for (int destination = 1; destination < 200; ++destination) {
-        // 			route = dijkstra.getRoute(source, destination, tickets, Colour.Blue);
-        // 			distances[source][destination]
-        //                 = route.size() - 1;
-        //             writer.print(distances[source][destination]);
-        //             writer.print(" ");
-        //         }
-        //         // if (source > 150) {
-        //         //     try {
-        //         //         Thread.sleep(1000);
-        //         //     } catch(InterruptedException ex) {
-        //         //         Thread.currentThread().interrupt();
-        //         //     }
-        //         // }
-        //     }
-        //     writer.flush();
-        //     writer.close();
-        // } catch (IOException e) {
-        //     try {
-        //         Thread.sleep(3000);
-        //     } catch(InterruptedException ex) {
-        //         Thread.currentThread().interrupt();
-        //     }
-        //     System.out.println("\nError caught while creating PrintWriter");
-        // }
         try {
             BufferedInputStream bis = new BufferedInputStream(new FileInputStream("lookup-node-distances.txt"));
             for (int source = 1; source < 200; ++source) {
@@ -160,63 +120,6 @@ public class AIPlayerFactory implements PlayerFactory {
             }
             System.out.println("\nError caught while creating PrintWriter");
         }
-        /* FIRST VERSION OF DISTANCES BY TICKETS */
-        /*try {
-            PrintWriter writer = new PrintWriter(file, "UTF-8");
-            distancesByTickets = new int[201][201][12][9][5];
-            // from 3 to 10 with 6 taxi, 3 bus and 1 underground distancesByTickets[3][10][6][3][1]
-            Dijkstra dijkstra = new Dijkstra(graphFilename);
-            List<Integer> route = new ArrayList<Integer>();
-            Map<Transport, Integer> tickets = new HashMap<Transport, Integer>();
-            for (int source = 1; source < 200; ++source) {
-                System.out.println("Computing Source: " + source);
-                //writer.println("Source " + source);
-                writer.print("\n\n\n\n\n\n");
-                for (int destination = 1; destination < 200; ++destination) {
-                    //writer.println("\n\n\nFrom " + source + " to " + destination);
-                    writer.print("\n\n");
-                    for (int taxiTickets = 0; taxiTickets < 12; ++taxiTickets) {
-                        //writer.println("");
-                        for (int busTickets = 0; busTickets < 9; ++busTickets) {
-                            //writer.println("");
-                            for (int ugTickets = 0; ugTickets < 5; ++ugTickets) {
-                                tickets.clear();
-                    			tickets.put(Transport.Taxi, taxiTickets);
-                                tickets.put(Transport.Bus, busTickets);
-                    			tickets.put(Transport.Underground, ugTickets);
-                    			route = dijkstra.getRoute(source, destination, tickets, Colour.Blue);
-                    			distancesByTickets[source][destination][taxiTickets][busTickets][ugTickets]
-                                    = route.size();
-                                //writer.println("Using " + taxiTickets + " taxis, " + busTickets + " buses, " + ugTickets + " undergrounds");
-                                writer.print(distancesByTickets[source][destination][taxiTickets][busTickets][ugTickets]);
-                                writer.print(" ");
-                            }
-                        }
-                    }
-                }
-            }
-        } catch (IOException e) {
-            System.out.println("\nError caught while creating PrintWriter");
-        }*/
-        // try {
-        //     //Scanner reader = new Scanner(file);
-        //     BufferedInputStream bis = new BufferedInputStream(new FileInputStream("lookup-node-rank.txt"));
-        //     for (int source = 1; source < 200; ++source) {
-        //         System.out.println("Reading source: " + source);
-        //         for (int destination = 1; destination < 200; ++destination) {
-        //             for (int taxiTickets = 0; taxiTickets < 12; ++taxiTickets) {
-        //                 for (int busTickets = 0; busTickets < 9; ++busTickets) {
-        //                     for (int ugTickets = 0; ugTickets < 5; ++ugTickets) {
-        //                         distancesByTickets[source][destination][taxiTickets][busTickets][ugTickets]
-        //                             = readInt(bis);//reader.nextInt();
-        //                     }
-        //                 }
-        //             }
-        //         }
-        //     }
-        // } catch (IOException e) {
-        //     System.out.println("Error:\nError creating Scanner.");
-        // }
     }
 
     /**
@@ -255,19 +158,16 @@ public class AIPlayerFactory implements PlayerFactory {
      */
     private void generateMoves() {
         for (int location = 1; location < 200; ++location) {
-            // System.out.println("Generating moves for location: " + location);
             generatedMoves[location][0] = 0;
             int player = encodeColour(Colour.Black);
-            int normalTicket = 0;
+            int normalTicket;
             int secretTicket = encodeTicket(Ticket.Secret);
-            int normalMove = 0;
-            int secretMove = 0;
+            int normalMove;
+            int secretMove;
             Node<Integer> nodeLocation = graph.getNode(location);
-            // System.out.println("\nGenerating moves.");
             for (Edge<Integer, Transport> e : graph.getEdgesFrom(nodeLocation)) {
                normalTicket = encodeTicket(Ticket.fromTransport(e.getData()));
                normalMove = player + normalTicket + e.getTarget().getIndex();
-               //System.out.println("Adding normalMove: " + normalMove);
                addElementToArray(generatedMoves[location], normalMove);
         	   secretMove = player + secretTicket + e.getTarget().getIndex();
         	   addElementToArray(generatedMoves[location], secretMove);
@@ -301,12 +201,12 @@ public class AIPlayerFactory implements PlayerFactory {
      * @param generatedMoves reference to a 1-dimensional array for a certain location
      */
     private void generateDoubleMoves(int player, Edge previousEdge, int movePrevious, int[] generatedMoves) {
-        int normalTicket = 0;
+        int normalTicket;
         int secretTicket = encodeTicket(Ticket.Secret);
-        int normalMove = 0;
-        int secretMove = 0;
-        int normalDouble = 0;
-        int secretDouble = 0;
+        int normalMove;
+        int secretMove;
+        int normalDouble;
+        int secretDouble;
         Integer middle = (Integer) previousEdge.getTarget().getIndex();
         Node<Integer> nodeLocation = graph.getNode(middle);
         for (Edge<Integer, Transport> e : graph.getEdgesFrom(nodeLocation)) {

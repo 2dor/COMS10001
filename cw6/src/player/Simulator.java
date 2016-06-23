@@ -2,7 +2,6 @@ package player;
 
 import scotlandyard.*;
 import graph.*;
-
 import java.io.IOException;
 import java.util.*;
 
@@ -18,7 +17,6 @@ public class Simulator extends ScotlandYard {
 	private int[][] generatedMoves;
 	private int[][] movesValid;
     private int[] onlyTaxiLinks;
-    private static int DUMMYMOVE = 11042;
 
     private final static Colour[] playerColours = {
         Colour.Black,
@@ -183,8 +181,6 @@ public class Simulator extends ScotlandYard {
             reverseTicketMove(move, previousLocation);
         } else if (isMoveDouble(move)) {
             reverseDoubleMove(move, previousLocation);
-        } else if (isMovePass(move)) {
-            return;
         }
     }
 
@@ -197,7 +193,6 @@ public class Simulator extends ScotlandYard {
     protected void play(int move, HashSet<Integer> locations) {
         if (isMoveTicket(move)) playTicket(move, locations);
         else if (isMoveDouble(move)) playDouble(move, locations);
-        else if (isMovePass(move)) return;
     }
 
     /**
@@ -279,6 +274,7 @@ public class Simulator extends ScotlandYard {
                         int[] currentConfigurationScore,
                         int previousScore,
                         HashSet<Integer> mrXOldLocations) {
+        int DUMMYMOVE = 11042;
         if (player == Colour.Black) {
             getPlayer(Colour.Black).setLocation(location);
             if (view.getRound() == 0) {
@@ -292,7 +288,7 @@ public class Simulator extends ScotlandYard {
         if (currentConfigurationScore[0] == 0) {
             return DUMMYMOVE;
         }
-        Integer bestScore = 0;
+        Integer bestScore;
         if ((level == 6) || (currentRound == 24 && player == Colour.Black)) {
             currentConfigurationScore[0] += mrXOldLocations.size();
             currentConfigurationScore[0] *= 1000;
@@ -403,7 +399,7 @@ public class Simulator extends ScotlandYard {
      */
 	private int getNodeRank(int location) {
 		int bestScore = 666013;
-        int score = 0;
+        int score;
 		for (Colour p : playerColours){
 			if (p == Colour.Black) continue;
             score = distances[getPlayerLocation(p)][location];
@@ -419,12 +415,11 @@ public class Simulator extends ScotlandYard {
     * @return the sum of the distances from each detective to all possible locations of mrX.
     */
     private int getDetectiveScore(HashSet<Integer> mrXPossibleLocations) {
-        int detectiveLocation = 0;
+        int detectiveLocation;
         int score = 0;
         for (int i = 1; i < 6; ++i) {
             detectiveLocation = getPlayerLocation(playerColours[i]);
             for (Integer destination : mrXPossibleLocations) {
-                int scoreAux = distances[detectiveLocation][destination];
                 score += distances[detectiveLocation][destination];
             }
         }
@@ -448,7 +443,7 @@ public class Simulator extends ScotlandYard {
             if (colour == Colour.Black) {
                 HashSet<Integer> newLocations = new HashSet<Integer>();
                 for (Integer location : locations) {
-                    int m = 0;
+                    int m ;
                     for (int i = 1; i <= generatedMoves[location][0]; ++i) {
                         m = generatedMoves[location][i];
                         if (isMoveTicket(m) && isMoveTicket(moveMade)) {
@@ -585,29 +580,26 @@ public class Simulator extends ScotlandYard {
 	/**
     * Converts a move of type int into the move of type Move.
     *
-    * @param move a int move which is to be coverted.
+    * @param move a int move which is to be converted.
     * @return a converted move of type Move.
     */
 	public Move decodeMove(int move) {
 		if (isMoveTicket(move)) {
-			Move single = decodeMoveTicket(move);
-			return single;
+			return decodeMoveTicket(move);
 		} else if (isMoveDouble(move)) {
 			int m1 = move / 100000;
 			int m2 = move - m1 * 100000;
 			MoveTicket move1 = decodeMoveTicket(m1);
 			MoveTicket move2 = decodeMoveTicket(m2);
-			Move dbl = MoveDouble.instance(decodeColour(m1), move1, move2);
-			return dbl;
+			return MoveDouble.instance(decodeColour(m1), move1, move2);
 		}
-		Move pass = MovePass.instance(decodeColour(move));
-		return pass;
+		return MovePass.instance(decodeColour(move));
 	}
 
 	/**
     * Converts a single move of type int into the single move of type Move.
     *
-    * @param move a single int move which is to be coverted.
+    * @param move a single int move which is to be converted.
     * @return a converted single move of type Move.
     */
 	public MoveTicket decodeMoveTicket(int move) {
@@ -619,7 +611,7 @@ public class Simulator extends ScotlandYard {
 	/**
     * Converts a move of type Move into the move of type int.
     *
-    * @param move a Move move which is to be coverted.
+    * @param move a Move move which is to be converted.
     * @return a converted move of type int.
     */
 	public int encodeMove(Move move) {
@@ -641,7 +633,7 @@ public class Simulator extends ScotlandYard {
 	/**
     * Converts a single move of type Move into the single move of type int.
     *
-    * @param move a Move move which is to be coverted.
+    * @param move a Move move which is to be converted.
     * @return a converted move of type int.
     */
 	public int encodeMove(MoveTicket move) {
@@ -653,7 +645,7 @@ public class Simulator extends ScotlandYard {
 	/**
     * Converts a double move of type Move into the double move of type int.
     *
-    * @param move a Move move which is to be coverted.
+    * @param move a Move move which is to be converted.
     * @return a converted move of type int.
     */
 	public int encodeMove(MoveDouble move) {
@@ -681,9 +673,7 @@ public class Simulator extends ScotlandYard {
     * @return true if given player contains a given ticker and false otherwise.
     */
 	public boolean hasTickets(PlayerData player, Ticket ticket) {
-        if (player.getTickets().get(ticket) == 0)
-            return false;
-        return true;
+        return player.getTickets().get(ticket) != 0;
     }
 
 	/**
@@ -700,11 +690,10 @@ public class Simulator extends ScotlandYard {
 		movesValid[level][0] = 0;
 		PlayerData player = getPlayer(col);
         int colour = encodeColour(col);
-        int normalTicket = 0;
+        int normalTicket;
         int secretTicket = encodeTicket(Ticket.Secret);
-		int doubleTicket = encodeTicket(Ticket.Double);
-        int normalMove = 0;
-        int secretMove = 0;
+        int normalMove;
+        int secretMove;
         Node<Integer> nodeLocation = graph.getNode(player.getLocation());
         for (Edge<Integer, Transport> e : graph.getEdgesFrom(nodeLocation)) {
             normalTicket = encodeTicket(Ticket.fromTransport(e.getData()));
@@ -749,12 +738,12 @@ public class Simulator extends ScotlandYard {
 	*/
 	public void validDoubleMoves(PlayerData player, Edge<Integer, Transport> previousEdge, int movePrevious, int level) {
 		int colour = encodeColour(player.getColour());
-		int normalTicket = 0;
+		int normalTicket;
         int secretTicket = encodeTicket(Ticket.Secret);
-        int normalMove = 0;
-        int secretMove = 0;
-        int normalDouble = 0;
-        int secretDouble = 0;
+        int normalMove;
+        int secretMove;
+        int normalDouble;
+        int secretDouble;
 		Integer middle = (Integer) previousEdge.getTarget().getIndex();
         Node<Integer> nodeLocation = graph.getNode(middle);
 		for (Edge<Integer, Transport> e : graph.getEdgesFrom(nodeLocation)) {
